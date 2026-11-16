@@ -156,6 +156,48 @@ let AC=null,muted=false;
 function snd(f,d=.1,type='square',v=.05,slide=0){if(muted)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.linearRampToValueAtTime(Math.max(30,f+slide),t+d);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
 function alarm(n=8){for(let i=0;i<n;i++)setTimeout(()=>snd(i%2?620:880,.2,'sawtooth',.035),i*220)}
 
+/* ---------- background music: chiptune made in code, one track per situation ---------- */
+const MIDI=n=>440*Math.pow(2,(n-69)/12);
+const TR={
+ title:{bpm:80,ch:[[64,1],[60,0],[67,0],[62,0]],arp:[0,2,3,4,3,2,1,null],oct:0,lead:'sine',lv:.08,len:1.2,bas:[1,0,0,0,0,0,0,0],bw:'triangle',bv:.12,blen:7,pad:1,pv:.025,h:[0,0,0,0,0,0,1,0],hv:.015},
+ base:{bpm:96,ch:[[60,0],[57,1],[53,0],[55,0]],arp:[0,2,3,2,4,2,3,2],oct:12,lead:'triangle',lv:.06,len:.7,bas:[1,0,0,0,1,0,2,0],bw:'triangle',bv:.13,k:[1,0,0,0,1,0,0,0],kv:.1,h:[0,0,1,0,0,0,1,0],hv:.02},
+ repair:{bpm:138,ch:[[60,0],[55,0],[57,1],[53,0]],arp:[3,5,4,5,3,5,6,5],oct:0,lead:'square',lv:.03,len:.6,bas:[1,2,1,2,1,2,1,2],bw:'triangle',bv:.13,blen:.6,k:[1,0,0,0,1,0,0,0],kv:.2,sn:[0,0,1,0,0,0,1,0],sv:.07,h:[1,1,1,1,1,1,1,1],hv:.02},
+ alert:{bpm:116,ch:[[57,1],[53,0],[57,1],[52,0]],arp:[0,null,2,null,0,null,3,null],oct:12,lead:'square',lv:.035,len:.4,bas:[1,1,1,1,1,1,1,1],bw:'sawtooth',bv:.045,blen:.5,k:[1,0,0,0,1,0,0,0],kv:.16,h:[0,0,1,0,0,0,1,0],hv:.025},
+ storm:{bpm:152,ch:[[62,1],[58,0],[55,1],[57,0]],arp:[0,1,2,3,2,1,0,1],oct:12,lead:'sawtooth',lv:.03,len:.5,bas:[1,1,2,1,1,1,2,1],bw:'square',bv:.05,blen:.5,k:[1,0,1,0,1,0,1,0],kv:.22,sn:[0,0,1,0,0,0,1,1],sv:.09,h:[1,1,1,1,1,1,1,1],hv:.025},
+ night:{bpm:66,ch:[[57,1],[53,0],[60,0],[55,0]],arp:[null,null,4,null,null,3,null,null],oct:12,lead:'sine',lv:.05,len:2,bas:[1,0,0,0,0,0,0,0],bw:'sine',bv:.12,blen:7,pad:1,pv:.025},
+ win:{bpm:132,ch:[[60,0],[65,0],[67,0],[60,0]],arp:[0,1,2,3,2,3,4,5],oct:12,lead:'square',lv:.03,len:.7,bas:[1,0,2,0,1,0,2,0],bw:'triangle',bv:.14,k:[1,0,0,0,1,0,0,0],kv:.18,sn:[0,0,1,0,0,0,1,0],sv:.07,h:[0,1,0,1,0,1,0,1],hv:.02},
+ lose:{bpm:60,ch:[[57,1],[62,1],[52,0],[57,1]],arp:[2,null,1,null,0,null,null,null],oct:12,lead:'triangle',lv:.06,len:1.8,bas:[1,0,0,0,0,0,0,0],bw:'sine',bv:.12,blen:7,pad:1,pv:.02}
+};
+const mus={cur:null,step:0,next:0,timer:null,gain:null};
+let noiseBuf=null;
+function musInit(){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();
+ if(!mus.gain){mus.gain=AC.createGain();mus.gain.gain.value=muted?0:.55;mus.gain.connect(AC.destination)}
+ if(!mus.timer)mus.timer=setInterval(musTick,25)}catch(e){}}
+function setMusic(n){if(mus.cur===n)return;mus.cur=n;mus.step=0;if(AC){mus.next=AC.currentTime+.08;if(mus.gain){const g=mus.gain.gain,t=AC.currentTime;g.cancelScheduledValues(t);g.setValueAtTime(0,t);g.linearRampToValueAtTime(muted?0:.55,t+.4)}}}
+function musTick(){if(!AC||!mus.cur||AC.state!=='running')return;const tr=TR[mus.cur],sp=60/tr.bpm/2;
+ if(mus.next<AC.currentTime)mus.next=AC.currentTime+.02;
+ while(mus.next<AC.currentTime+.15){playStep(tr,mus.step,mus.next,sp);mus.step=(mus.step+1)%32;mus.next+=sp}}
+function mtone(f,t,d,type,v){const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(mus.gain);o.start(t);o.stop(t+d+.05)}
+function mnoise(t,d,v,hp){if(!noiseBuf){noiseBuf=AC.createBuffer(1,AC.sampleRate*.5|0,AC.sampleRate);const a=noiseBuf.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1}
+ const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=noiseBuf;f.type='highpass';f.frequency.value=hp;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);s.connect(f);f.connect(g);g.connect(mus.gain);s.start(t);s.stop(t+d+.02)}
+function mkick(t,v){const o=AC.createOscillator(),g=AC.createGain();o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(40,t+.12);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+.15);o.connect(g);g.connect(mus.gain);o.start(t);o.stop(t+.2)}
+function playStep(tr,s,t,sp){const[root,mi]=tr.ch[s>>3],k=s&7,th=mi?3:4,tones=[0,th,7,12,12+th,19,24];
+ const a=tr.arp[k];if(a!=null)mtone(MIDI(root+tr.oct+tones[a]),t,sp*(tr.len||.9),tr.lead,tr.lv);
+ const b=tr.bas[k];if(b)mtone(MIDI(root-12+(b===2?12:0)),t,sp*(tr.blen||.9),tr.bw,tr.bv);
+ if(tr.pad&&k===0)for(const i of[0,th,7])mtone(MIDI(root+12+i),t,sp*8,'sine',tr.pv);
+ if(tr.k&&tr.k[k])mkick(t,tr.kv);if(tr.sn&&tr.sn[k])mnoise(t,.12,tr.sv,1500);if(tr.h&&tr.h[k])mnoise(t,.04,tr.hv,7000)}
+function wantedTrack(){
+ if(MG)return'repair';
+ if(S.mode==='title')return'title';
+ if(S.mode==='intro')return S.introStep===1||S.introStep===2?'storm':'title';
+ if(S.mode==='end')return S.win?'win':'lose';
+ if(S.stormFx>0)return'storm';
+ if(bot.out)return'repair';
+ if(S.nightA>.3)return'night';
+ if(stormSoon())return'alert';
+ return'base'}
+['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,musInit));
+
 /* ---------- scenery ---------- */
 const stars=[...Array(45)].map(()=>[Math.random()*320|0,Math.random()*54|0,Math.random()*6]);
 const speck=[...Array(140)].map(()=>[Math.random()*320|0,60+Math.random()*120|0]);
@@ -170,7 +212,7 @@ function sendBot(m,cb){if(bot.out){bot.out=false;bot.x=224}bot.tx=SPOT[m].x;bot.
 function updBot(dt){
  if(bot.state==='walk'){const d=bot.tx-bot.x,st=110*dt;
   if(Math.abs(d)<=st){bot.x=bot.tx;if(bot.goOut&&!bot.out){bot.out=true;bot.x=258;snd(260,.25,'triangle',.05,-120)}bot.state='work';bot.work=.9}
-  else bot.x+=Math.sign(d)*st}
+  else{bot.x+=Math.sign(d)*st;bot.stepT=(bot.stepT||0)+dt;if(bot.stepT>.16){bot.stepT=0;snd(150,.03,'square',.012)}}}
  else if(bot.state==='work'){bot.work-=dt;if(Math.random()<.6)spark(bot.spot.sx,bot.spot.sy);if(Math.random()<.2)snd(1100+Math.random()*700,.03,'square',.015);
   if(bot.work<=0){bot.state='idle';if(bot.out){bot.out=false;bot.x=222}const cb=bot.cb;bot.cb=null;cb&&cb()}}
 }
@@ -182,6 +224,7 @@ function puff(x,y,c,vx,vy,sz=2){P.push({x,y,vx,vy,life:1.3,c,g:0,sz})}
 
 function update(dt){
  T+=dt;updBot(dt);
+ if(S.mode==='play'&&S.hp<35&&S.kaiInBed){S.hbT=(S.hbT||0)+dt;if(S.hbT>.9){S.hbT=0;snd(990,.06,'sine',.03)}}
  if(S.shake>0)S.shake-=dt;S.flash=Math.max(0,S.flash-dt*1.5);S.kaiAwake-=dt;
  S.nightA+=(S.nightT-S.nightA)*Math.min(1,dt*3);
  if(S.mode==='play'||S.mode==='end'){
@@ -335,7 +378,7 @@ cv.addEventListener('click',e=>{if(S.mode==='end'&&S.win&&!S.endShown){S.endT=Ma
 $('bMon').onclick=()=>{if(S.mode==='play'&&!S.busy)openMonitor()};
 $('bWake').onclick=wakeKai;
 $('bEnd').onclick=endDay;
-$('bSnd').onclick=()=>{muted=!muted;$('bSnd').textContent='SOUND: '+(muted?'OFF':'ON')};
+$('bSnd').onclick=()=>{muted=!muted;$('bSnd').textContent='SOUND: '+(muted?'OFF':'ON');if(mus.gain&&AC){mus.gain.gain.cancelScheduledValues(AC.currentTime);mus.gain.gain.setValueAtTime(muted?0:.55,AC.currentTime)}};
 $('bubble').onclick=()=>$('bubble').style.display='none';
 
 /* ---------- UI helpers ---------- */
@@ -538,7 +581,7 @@ let MG=null;
 function miniGame(type){return new Promise(res=>{MG=makeMG(type);MG.res=res;MG.prog=MG.prog||0;MG.done=false;$('mgTxt').textContent=MG.text;$('mg').style.display='flex';snd(400,.08,'square',.04)})}
 $('mgQuit').onclick=()=>{if(!MG||MG.done)return;const r=MG.res;MG=null;$('mg').style.display='none';r(false)};
 function mgPos(e){const r=mgc.getBoundingClientRect();return[(e.clientX-r.left)/r.width*200,(e.clientY-r.top)/r.height*120]}
-mgc.addEventListener('pointerdown',e=>{if(!MG||MG.done)return;try{mgc.setPointerCapture(e.pointerId)}catch(_){}MG.held=true;const[x,y]=mgPos(e);MG.px=x;MG.py=y;MG.down&&MG.down(x,y);e.preventDefault()});
+mgc.addEventListener('pointerdown',e=>{if(!MG||MG.done)return;try{mgc.setPointerCapture(e.pointerId)}catch(_){}MG.held=true;snd(600,.04,'square',.03);const[x,y]=mgPos(e);MG.px=x;MG.py=y;MG.down&&MG.down(x,y);e.preventDefault()});
 mgc.addEventListener('pointermove',e=>{if(!MG)return;const[x,y]=mgPos(e);MG.px=x;MG.py=y;if(MG.held&&!MG.done&&MG.move)MG.move(x,y)});
 mgc.addEventListener('pointerup',()=>{if(!MG)return;MG.held=false;if(!MG.done&&MG.up)MG.up(MG.px,MG.py)});
 function mgWin(){if(!MG||MG.done)return;MG.done=true;MG.prog=1;snd(880,.08,'square',.04);setTimeout(()=>snd(1320,.15,'square',.04),100);$('mgTxt').textContent='FIXED! Great job, BOLT.';
@@ -612,7 +655,7 @@ function drawMG(){if(!MG)return;MR('#0b0d1e',0,0,200,120);MG.draw();MR('#222',10
 
 /* ---------- loop ---------- */
 let last=performance.now();
-function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw();drawMG();requestAnimationFrame(loop)}
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw();drawMG();setMusic(wantedTrack());requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 title();
 </script>
