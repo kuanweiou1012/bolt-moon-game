@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BOLT: 7 Days on the Moon</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0d1e;--panel:#161a36;--line:#3a4180;--txt:#e8ecff;--dim:#9aa3d4;--pow:#ffcc33;--air:#5dcaff;--shd:#a98bff;--hp:#ff6b8a;--red:#e24b4a;--ok:#5dcaa5}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--txt);font-family:'VT323',monospace;font-size:22px;line-height:1.25;display:flex;justify-content:center}
+#app{width:100%;max-width:980px;padding:8px}
+#hud{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:6px 10px;background:var(--panel);border:2px solid var(--line)}
+.h{font-family:'Press Start 2P',monospace;font-size:12px}
+.bar{display:flex;align-items:center;gap:6px}
+.bar .t{width:84px;height:14px;background:#000;border:2px solid #555}
+.bar .f{height:100%;width:50%;transition:width .6s}
+.bar .n{min-width:28px}
+#stage{position:relative;margin-top:6px;user-select:none}
+canvas{width:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges;border:2px solid var(--line);cursor:pointer}
+.lab{position:absolute;font-size:16px;background:rgba(0,0,0,.55);padding:0 4px;pointer-events:none;color:#cfd6ff}
+#bottom{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px}
+button{font-family:'Press Start 2P',monospace;font-size:11px;line-height:1.5;background:#2a3170;color:#fff;border:2px solid #7f8ae0;padding:10px 12px;cursor:pointer}
+button:hover{background:#3a43a0}
+button:active{transform:translateY(2px)}
+button.big{font-size:13px;padding:12px 16px;background:#a32d2d;border-color:#ff8a8a}
+button:disabled{opacity:.4;cursor:not-allowed}
+.pips span{display:inline-block;width:16px;height:22px;margin-right:3px;border:2px solid #9aa3d4;background:#000;vertical-align:middle}
+.pips span.on{background:var(--ok)}
+#tip{color:var(--dim);margin-top:4px;min-height:26px}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;padding:12px;z-index:5}
+#modal.light{background:transparent;align-items:flex-end;pointer-events:none}
+#modal.light #card{pointer-events:auto;margin-bottom:12px}
+#card{background:var(--panel);border:3px solid #7f8ae0;max-width:600px;width:100%;padding:14px 16px;max-height:90vh;overflow:auto}
+#card h2{font-family:'Press Start 2P',monospace;font-size:14px;line-height:1.6;margin:0 0 10px;color:#fff}
+#card p{margin:6px 0}
+#card ul{margin:4px 0;padding-left:22px}
+.fact{background:#0e1230;border-left:4px solid var(--air);padding:6px 10px;margin:8px 0;color:#cfe8ff}
+.fact b{color:var(--air)}
+.prob{border:2px solid var(--red);padding:8px;margin:8px 0}
+.opt{display:block;width:100%;text-align:left;margin:8px 0 0}
+.cost{color:#ffd27a;font-family:'VT323',monospace;font-size:20px}
+.src{color:var(--dim);font-size:18px}
+#banner{position:absolute;top:6px;left:50%;transform:translateX(-50%);background:#a32d2d;color:#fff;font-family:'Press Start 2P',monospace;font-size:11px;padding:6px 10px;display:none;animation:bl 1s steps(2) infinite;pointer-events:none;white-space:nowrap}
+@keyframes bl{50%{background:#5a1010}}
+#bubble{position:absolute;left:3%;top:22%;max-width:46%;background:#fff;color:#111;padding:6px 10px;border:3px solid #111;display:none;font-size:20px;cursor:pointer}
+#bubble:after{content:'';position:absolute;bottom:-12px;left:20px;border:6px solid transparent;border-top-color:#111}
+#cap{position:absolute;top:40%;left:0;right:0;text-align:center;font-family:'Press Start 2P',monospace;font-size:22px;color:#fff;text-shadow:3px 3px 0 #000;opacity:0;transition:opacity .5s;pointer-events:none}
+#toast{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:#0f6e56;color:#fff;padding:4px 10px;border:2px solid #5dcaa5;display:none;pointer-events:none;white-space:nowrap}
+.title{font-family:'Press Start 2P',monospace;font-size:20px;line-height:1.5;color:var(--pow);margin:4px 0 8px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <span class="h" id="dayL">DAY 1/7</span>
+    <div class="bar"><span style="color:var(--pow)">POWER</span><div class="t"><div class="f" id="fPow" style="background:var(--pow)"></div></div><span class="n" id="nPow"></span></div>
+    <div class="bar"><span style="color:var(--air)">AIR</span><div class="t"><div class="f" id="fAir" style="background:var(--air)"></div></div><span class="n" id="nAir"></span></div>
+    <div class="bar"><span style="color:var(--shd)">SHIELD</span><div class="t"><div class="f" id="fShd" style="background:var(--shd)"></div></div><span class="n" id="nShd"></span></div>
+    <div class="bar"><span style="color:var(--hp)">KAI'S HEALTH</span><div class="t"><div class="f" id="fHp" style="background:var(--hp)"></div></div><span class="n" id="nHp"></span></div>
+  </div>
+  <div id="stage">
+    <canvas id="cv" width="320" height="180"></canvas>
+    <div class="lab" style="left:3%;top:40%">MED BAY</div>
+    <div class="lab" style="left:31.5%;top:40%">AIR</div>
+    <div class="lab" style="left:51.5%;top:40%">BATTERY</div>
+    <div class="lab" style="left:77%;top:30%">SOLAR</div>
+    <div class="lab" style="left:3%;top:26%">SHIELD</div>
+    <div id="banner"></div>
+    <div id="bubble"></div>
+    <div id="cap"></div>
+    <div id="toast"></div>
+  </div>
+  <div id="bottom">
+    <div>BOLT battery: <span class="pips" id="pips"></span></div>
+    <button id="bMon">MONITOR</button>
+    <button id="bWake">WAKE KAI</button>
+    <button id="bEnd" class="big">END DAY</button>
+    <button id="bSnd">SOUND: ON</button>
+  </div>
+  <div id="tip">Tap a room to check on it.</div>
+</div>
+<div id="modal"><div id="card"></div></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+const W=320,H=180;let T=0;
+
+/* ---------- real data (historical, saved in the game, not live) ---------- */
+const STORMS=[
+ {date:'Sep 6, 2017',what:'X9.3 solar flare',power:46,note:'The biggest flare of Solar Cycle 24.'},
+ {date:'Sep 10, 2017',what:'X8.2 solar flare and particle storm',power:44,note:'Its fast particles were even measured on the ground on Earth.'},
+ {date:'Oct 3, 2024',what:'X9.0 solar flare',power:45,note:'The biggest flare of Solar Cycle 25 at that time.'},
+ {date:'May 11, 2024',what:'X5.8 solar flare',power:36,note:'Part of the "Gannon storm" that made auroras visible far from the poles.'},
+ {date:'Aug 9, 2011',what:'X6.9 solar flare',power:38,note:'The strongest solar flare of 2011.'},
+ {date:'Jul 23, 2012',what:'super fast CME (about 3,000 km per second)',power:42,note:'It just missed Earth. A CME is a giant cloud of hot gas blasted off the Sun.'}
+];
+
+const PDEF={
+ dust:{mod:'solar',name:'Moon dust on the solar panels',effect:'Panels make half as much power.',fact:'Moon dust is sharp like tiny bits of glass and sticks to everything. Apollo astronauts found it on their suits, their tools, and even in their noses.',fixes:[{t:'Brush the dust off',a:1,c:{air:4}}]},
+ crack:{mod:'solar',name:'Cracked solar panel',effect:'Panels make 70% less power.',fact:'Tiny space rocks called micrometeoroids hit the Moon all the time. There is no air to slow them down, so even a grain of sand can crack glass.',fixes:[{t:'Quick tape patch (it might crack again)',a:1,c:{air:4},again:true},{t:'Replace the whole panel',a:2,c:{air:4,power:5}}]},
+ filter:{mod:'air',name:'Clogged air filter',effect:'The oxygen machine makes NO oxygen.',fact:'One person breathes about 0.84 kg of oxygen every day (NASA). The machine has to keep making it, day and night.',fixes:[{t:'Clean the filter',a:1,c:{power:6}}]},
+ leak:{mod:'air',name:'Air leak in a pipe',effect:'Lose 12 extra air every night.',fact:'Outside the base is a vacuum: empty space with no air at all. Any tiny hole lets air rush out.',fixes:[{t:'Seal the leak',a:2,c:{}}]},
+ gap:{mod:'shield',name:'Crack in the radiation shield',effect:'Shield drops 10 every night, and storms hit harder.',fact:'The Moon has no thick air and no magnetic field to block radiation from the Sun. Covering a base with Moon soil (called regolith) is one way to block it.',fixes:[{t:'Fill the crack with Moon soil',a:1,c:{power:4}}]},
+ cold:{mod:'battery',name:'Battery is freezing',effect:'Lose 12 power every night.',fact:'In the shade, the Moon can get colder than -170 C. Batteries work badly in the cold, so bases have to keep them warm.',fixes:[{t:'Turn on the battery heater',a:1,c:{power:6}}]}
+};
+const BOOST={
+ solar:{t:'Turn the panels to face the Sun (+10 power tonight)',a:1,c:{air:4},eff:{solarBonus:10}},
+ shield:{t:'Pile on more Moon soil (+15 shield)',a:1,c:{power:5},eff:{shield:15}},
+ air:{t:'Run the machine at full speed (+15 air)',a:1,c:{power:10},eff:{air:15}},
+ battery:{t:'Turn off extra lights (+8 power)',a:1,c:{hp:3},eff:{power:8}},
+ med:{t:'Give Kai a medicine pack (+12 health)',a:1,c:{medkit:1},eff:{hp:12}}
+};
+const MODINFO={
+ solar:{name:'Solar panels',stat:()=>`Panels turn sunlight into power. Tonight they will make about +${prodEst()} power.`,fact:`<b>Real fact:</b> Some hills near the Moon's south pole get sunlight almost all the time. That is one reason NASA's Artemis missions want to go there.`},
+ shield:{name:'Radiation shield',stat:()=>`Shield strength: ${S.shield}/100. A stronger shield blocks more radiation in a solar storm.`,fact:`<b>Real fact:</b> On Earth, our air and magnetic field protect us from solar storms. On the Moon, there is nothing, so the base needs its own shield.`},
+ air:{name:'Oxygen machine',stat:()=>`Air: ${S.air}/100. Kai uses 14 air every night. The machine makes 18 when it works.`,fact:`<b>Real fact:</b> Every trip outside through the airlock lets a little air escape. That is why outside repairs cost air.`},
+ battery:{name:'Battery',stat:()=>`Power: ${S.power}/100. The base uses 28 power every night (air machine, heat, med bed).`,fact:`<b>Real fact:</b> One night on the Moon lasts about 14 Earth days. Bases need big batteries to get through the dark.`},
+ med:{name:'Med bay',stat:()=>`Kai's health: ${S.hp}/100. Medicine packs left: ${S.medkits}.`,fact:`<b>Real fact:</b> NASA sets a radiation limit for an astronaut's whole career: 600 millisieverts. That is about as much as 6,000 chest X-rays.`}
+};
+const DILEMMAS=[
+ {title:'Power is low tonight',text:'Kai is asleep. There is not enough power for everything. BOLT must choose alone.',ok:()=>S.power<50,
+  a:{t:'Turn off the heater',c:'Kai gets cold: -8 health',f:()=>{S.hp-=8}},
+  b:{t:'Turn off the oxygen machine for the night',c:'-15 air',f:()=>{S.air-=15}}},
+ {title:'Space rock warning',text:'Sensors spot a shower of tiny space rocks. (In 2013, NASA cameras saw a space rock hit the Moon and flash so bright you could see it from Earth.)',
+  a:{t:'Fold the solar panels down',c:'Safe, but -10 power',f:()=>{S.power-=10}},
+  b:{t:'Leave them up and hope',c:'50% chance a panel cracks',f:()=>{if(Math.random()<.5){addProblem('crack');toast('Crack! A rock hit the panel.')}else toast('Phew, the rocks missed!')}}},
+ {title:'Kai is in pain',text:'Kai wakes up hurting and asks BOLT for help.',ok:()=>S.medkits>0,
+  a:{t:'Use a medicine pack',c:'+10 health, uses 1 of your few packs',f:()=>{S.hp+=10;S.medkits--}},
+  b:{t:'Stay and keep Kai calm all night',c:'+4 health, but BOLT starts tomorrow with 1 less battery bar',f:()=>{S.hp+=4;S.boltPenalty=1}}},
+ {title:'Static dust storm',text:'At sunrise and sunset, Moon dust can get an electric charge and float up. A dust cloud is drifting toward the panels.',
+  a:{t:'Cover the panels tonight',c:'-8 power',f:()=>{S.power-=8}},
+  b:{t:'Let it pass',c:'Dust may cover the panels (70%)',f:()=>{if(Math.random()<.7)addProblem('dust')}}}
+];
+
+/* ---------- state ---------- */
+const S={mode:'title',introStep:0,day:1,power:70,air:70,shield:55,hp:55,bolt:4,boltMax:4,problems:[],storms:[],medkits:2,wakeUsed:false,solarBonus:0,recur:false,stormFx:0,shake:0,flash:0,nightA:0,nightT:0,kaiAwake:0,kaiInBed:false,survived:[],hover:null,busy:false,boltPenalty:0,astro:null,win:false,shipY:-30};
+const has=t=>S.problems.includes(t);
+function addProblem(t){if(!has(t))S.problems.push(t)}
+function clampAll(){for(const k of['power','air','shield','hp'])S[k]=Math.max(0,Math.min(100,Math.round(S[k])));if(S.medkits<0)S.medkits=0}
+function prodEst(){let p=32+S.solarBonus;if(has('dust'))p*=.5;if(has('crack'))p*=.3;return Math.round(p)}
+function estPower(){return prodEst()-28-(has('cold')?12:0)}
+function estAir(){const make=(has('filter')||S.power+estPower()<=0)?0:18;return make-14-(has('leak')?12:0)}
+const sgn=n=>(n>=0?'+':'')+n;
+
+/* ---------- sound ---------- */
+let AC=null,muted=false;
+function snd(f,d=.1,type='square',v=.05,slide=0){if(muted)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.linearRampToValueAtTime(Math.max(30,f+slide),t+d);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
+function alarm(n=8){for(let i=0;i<n;i++)setTimeout(()=>snd(i%2?620:880,.2,'sawtooth',.035),i*220)}
+
+/* ---------- scenery ---------- */
+const stars=[...Array(45)].map(()=>[Math.random()*320|0,Math.random()*54|0,Math.random()*6]);
+const speck=[...Array(140)].map(()=>[Math.random()*320|0,60+Math.random()*120|0]);
+const dustPx=[...Array(150)].map(()=>[Math.random()*68|0,Math.random()*12|0]);
+function R(c,x,y,w,h){ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),w,h)}
+function circ(cx,cy,r,c){for(let y=-r;y<=r;y++){const w=Math.round(Math.sqrt(r*r-y*y));R(c,cx-w,cy+y,w*2+1,1)}}
+
+/* ---------- robot ---------- */
+const bot={x:50,out:false,state:'idle',tx:50,work:0,goOut:false,cb:null,spot:null};
+const SPOT={med:{x:72,sx:40,sy:128},air:{x:118,sx:144,sy:96},battery:{x:212,sx:195,sy:112},shield:{x:110,sx:116,sy:68},solar:{x:224,sx:272,sy:42}};
+function sendBot(m,cb){if(bot.out){bot.out=false;bot.x=224}bot.tx=SPOT[m].x;bot.goOut=m==='solar';bot.spot=SPOT[m];bot.cb=cb;bot.state='walk'}
+function updBot(dt){
+ if(bot.state==='walk'){const d=bot.tx-bot.x,st=75*dt;
+  if(Math.abs(d)<=st){bot.x=bot.tx;if(bot.goOut&&!bot.out){bot.out=true;bot.x=258;snd(260,.25,'triangle',.05,-120)}bot.state='work';bot.work=1.3}
+  else bot.x+=Math.sign(d)*st}
+ else if(bot.state==='work'){bot.work-=dt;if(Math.random()<.6)spark(bot.spot.sx,bot.spot.sy);if(Math.random()<.2)snd(1100+Math.random()*700,.03,'square',.015);
+  if(bot.work<=0){bot.state='idle';if(bot.out){bot.out=false;bot.x=222}const cb=bot.cb;bot.cb=null;cb&&cb()}}
+}
+
+/* ---------- particles ---------- */
+let P=[];
+function spark(x,y){for(let i=0;i<2;i++)P.push({x,y,vx:(Math.random()-.5)*70,vy:-Math.random()*50,life:.4,c:Math.random()<.5?'#ffdd55':'#fff',g:140,sz:1})}
+function puff(x,y,c,vx,vy,sz=2){P.push({x,y,vx,vy,life:1.3,c,g:0,sz})}
+
+function update(dt){
+ T+=dt;updBot(dt);
+ if(S.shake>0)S.shake-=dt;S.flash=Math.max(0,S.flash-dt*1.5);S.kaiAwake-=dt;
+ S.nightA+=(S.nightT-S.nightA)*Math.min(1,dt*3);
+ if(S.mode==='play'||S.mode==='end'){
+  if(has('leak')&&Math.random()<.35)puff(145,88,'#dfe8ff',35+Math.random()*25,(Math.random()-.5)*14);
+  if(has('filter')&&Math.random()<.18)puff(136+Math.random()*12,110,'#222',(Math.random()-.5)*6,-14,3);
+  if(has('crack')&&Math.random()<.1)spark(272,40);
+  if(has('cold')&&Math.random()<.08)puff(178+Math.random()*34,82,'#bfeaff',0,10,1);
+ }
+ if(S.stormFx>0){S.stormFx-=dt;for(let k=0;k<4;k++)P.push({x:28+Math.random()*8,y:22+Math.random()*6,vx:30+Math.random()*190,vy:42+Math.random()*10,life:4,c:Math.random()<.5?'#ffdd55':'#ff7a3a',storm:true,sz:1})}
+ for(const p of P){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=(p.g||0)*dt;p.life-=dt;
+  if(p.storm&&!p.passed&&p.y>=58){
+   if(p.x>234||p.x<8){if(p.y>60)p.life=0}
+   else{const nearGap=has('gap')&&(Math.abs(p.x-65)<5||Math.abs(p.x-174)<5);
+    const pass=nearGap||Math.random()>(S.shield/100)*.9+.08;
+    if(pass&&S.mode!=='intro'){p.passed=true;p.c='#ff3a3a'}else{p.life=0;if(Math.random()<.3)P.push({x:p.x,y:58,vx:0,vy:-12,life:.2,c:'#fff',sz:1})}}}
+  if(p.passed&&p.y>150)p.life=0}
+ P=P.filter(p=>p.life>0&&p.y<185);
+ if(S.astro&&S.astro.run){S.astro.x+=dt*24;if(S.astro.x>=226){S.astro.run=false;S.astro.down=true;S.shake=.8;snd(90,.3,'sawtooth',.06)}}
+ if(S.mode==='end'&&S.win)S.shipY+=(40-S.shipY)*Math.min(1,dt*.8);
+}
+
+/* ---------- drawing ---------- */
+function draw(){
+ ctx.setTransform(1,0,0,1,0,0);
+ const sh=S.shake>0?[Math.round(Math.random()*4-2),Math.round(Math.random()*4-2)]:[0,0];
+ ctx.setTransform(1,0,0,1,sh[0],sh[1]);
+ const storm=S.stormFx>0;
+ R('#05060f',-4,-4,328,62);
+ for(const s of stars)R(Math.sin(T*2+s[2])>.3?'#fff':'#5b6089',s[0],s[1],1,1);
+ // sun
+ circ(28,20,storm?9:7,storm?'#ff9a2a':'#ffcc33');circ(28,20,storm?5:4,'#fff2a8');
+ if(storm)for(let i=0;i<10;i++){const a=i/10*6.283+T*1.5,d=12+Math.sin(T*9+i)*3;R('#ff5a1a',28+Math.cos(a)*d,20+Math.sin(a)*d,2,2)}
+ // earth
+ circ(176,14,5,'#378ADD');R('#639922',173,12,3,2);R('#639922',178,16,2,2);R('#fff',174,10,2,1);
+ // ground
+ R('#4a4a58',-4,58,328,126);for(const p of speck)R('#3d3d4a',p[0],p[1],2,1);
+ R('#9a9aa6',-4,55,328,3);R('#b4b4be',180,54,14,1);R('#7d7d8a',150,55,6,1);
+ // hatch + antenna
+ R('#6b7280',232,47,10,8);R('#2b2f4a',235,49,4,6);R('#5dcaa5',236,45,2,2);
+ R('#aaa',214,38,1,17);R('#ccc',210,37,9,2);R(Math.sin(T*4)>0?'#e24b4a':'#5a1010',214,35,1,2);
+ drawCable();drawPanels();
+ // base interior
+ R('#1d2140',8,70,226,88);for(let i=18;i<232;i+=14)R('#22274c',i,70,1,80);
+ R('#5a6090',96,70,2,80);R('#5a6090',160,70,2,80);R('#5a6090',6,70,2,90);R('#5a6090',234,70,2,90);
+ R('#383e6e',8,150,226,8);R('#2c3160',8,150,226,1);
+ R('#6b7280',226,116,6,34);R(bot.out?'#e24b4a':'#5dcaa5',228,112,2,2);
+ drawShield();drawMed();drawAir();drawBattery();
+ drawAstro();
+ drawBot();
+ for(const p of P)R(p.c,p.x,p.y,p.sz||1,p.sz||1);
+ if(S.mode==='play'){
+  if(has('dust')||has('crack'))bang(268,26);
+  if(has('gap'))bang(46,51);
+  if(has('filter')||has('leak'))bang(129,80);
+  if(has('cold'))bang(172,80);
+  if(S.hp<35)bang(50,108);
+ }
+ if(S.mode==='end'&&S.win)drawShip();
+ if(S.hover&&S.mode==='play'&&!S.busy){const z=ZONES[S.hover];ctx.strokeStyle='#ffcc33';ctx.lineWidth=1;ctx.strokeRect(z[0]+.5,z[1]+.5,z[2]-1,z[3]-1)}
+ ctx.setTransform(1,0,0,1,0,0);
+ if(storm){ctx.fillStyle=`rgba(255,40,20,${.1+.08*Math.sin(T*10)})`;ctx.fillRect(0,0,W,H)}
+ if(S.nightA>.01){ctx.fillStyle=`rgba(4,6,26,${S.nightA})`;ctx.fillRect(0,0,W,H)}
+ if(S.flash>0){ctx.fillStyle=`rgba(255,255,240,${Math.min(1,S.flash)})`;ctx.fillRect(0,0,W,H)}
+}
+function bang(x,y){const b=Math.sin(T*7)>0?0:1;R('#111',x-4,y-7+b,9,11);R('#e24b4a',x-3,y-6+b,7,9);R('#fff',x,y-4+b,1,4);R('#fff',x,y+1+b,1,1)}
+function drawCable(){
+ R('#222',254,55,1,4);R('#222',254,58,1,1);R('#26262e',240,59,1,42);R('#26262e',232,100,9,1);R('#26262e',240,58,15,1);
+ if(prodEst()>12&&S.nightA<.3&&S.mode!=='title'){const L=15+42+9,k=(T*30)%L;let x,y;
+  if(k<15){x=254-k;y=58}else if(k<57){x=240;y=58+(k-15)}else{x=240-(k-57);y=100}R('#ffdd55',x,y,1,1)}
+}
+function drawPanels(){
+ const cr=has('crack'),du=has('dust');
+ for(let p=0;p<3;p++){const x=244+p*24;R('#888',x+9,48,2,8);R('#c9d1e0',x-1,35,22,14);R('#1a3a8a',x,36,20,12);
+  for(let gx=0;gx<20;gx+=5)R('#4a7ad0',x+gx,36,1,12);R('#4a7ad0',x,41,20,1);
+  if(!du&&!cr&&Math.sin(T*1.5+p)>.92)R('#ffffff',x+3+p*4,37,2,2)}
+ if(du)for(const d of dustPx){const off=d[0]%24;if(off<20)R(d[1]%2?'#a8a296':'#8e8a80',244+d[0],36+d[1],1,1)}
+ if(cr){const pts=[[270,36],[271,37],[271,38],[272,39],[273,40],[272,41],[273,42],[274,43],[275,44],[274,45],[275,46],[276,47],[268,40],[269,41],[277,42],[276,43]];for(const q of pts)R('#fff',q[0],q[1],1,1)}
+}
+function drawShield(){
+ let i=0;
+ for(let row=0;row<3;row++)for(let x=8+(row%2)*5;x<230;x+=10){i++;if(((i*37)%100)>=S.shield+5)continue;R('#5e5444',x,58+row*4,9,4);R(row%2?'#9c8f78':'#8a7e69',x,58+row*4,9,3)}
+ if(has('gap')){const fl=(T*6|0)%2;R(fl?'#ff4a3a':'#a32d2d',62,58,6,12);R(fl?'#ff4a3a':'#a32d2d',172,58,5,12)}
+}
+function drawMed(){
+ R('#6b7280',14,134,56,4);R('#4b5060',16,138,3,12);R('#4b5060',65,138,3,12);R('#e8e8f0',16,128,10,6);
+ if(S.kaiInBed){
+  const pale=S.hp<35;R(pale?'#d9c2b0':'#f2c79a',18,122,8,8);R('#3a2a1a',18,121,8,2);R('#fff',18,123,8,2);R('#e24b4a',23,123,2,2);
+  if(S.kaiAwake>0){R('#fff',19,126,2,2);R('#111',20,126,1,2);R('#fff',23,126,2,2);R('#111',24,126,1,2)}
+  else{R('#3a2a1a',19,127,2,1);R('#3a2a1a',23,127,2,1)}
+  R('#3f8f5a',26,126,42,8);R('#2f6e45',26,132,42,2);R('#fff',58,123,9,4);
+ }
+ R('#4b5060',81,102,2,48);R('#0a0c18',72,86,21,16);R('#5a6090',71,85,23,1);
+ const col=S.hp<35?'#e24b4a':'#5DCAA5',sp=S.hp<35?26:14;
+ for(let i=0;i<19;i++){const ph=((i+(T*sp|0))%14);let y=93;if(ph===3)y=89;if(ph===4)y=97;if(ph===5)y=91;R(S.kaiInBed?col:'#333',73+i,y,1,1)}
+ R('#222',73,99,19,2);R(col,73,99,Math.round(19*S.hp/100),2);
+ for(let k=0;k<S.medkits;k++){R('#fff',40+k*9,142,7,6);R('#e24b4a',42+k*9,144,3,2);R('#e24b4a',43+k*9,143,1,4)}
+}
+function drawAir(){
+ const working=!has('filter')&&S.power>0;
+ R('#9aa3d4',104,88,24,60);R('#0e2a40',106,90,20,56);
+ const lvl=Math.max(1,Math.round(56*S.air/100));R(S.air<25&&(T*4|0)%2?'#7a1a1a':'#1f6f9a',106,146-lvl,20,lvl);
+ if(working)for(let i=0;i<7;i++){const y=146-((T*14+i*9)%lvl);R('#bfeaff',108+(i*5)%17,y,2,2)}
+ R('#7d86b8',141,72,4,40);R('#7d86b8',128,104,6,3);
+ R('#5a6090',132,112,22,36);R('#2b2f4a',135,116,16,12);
+ const f=working?(T*14|0)%2:0;R('#9aa3d4',142,117+f*2,2,6-f*2);R('#9aa3d4',139+f*2,120,8-f*4,2);
+ R(working?'#5DCAA5':'#e24b4a',150,114,2,2);
+ if(has('leak')&&(T*6|0)%2)R('#e24b4a',144,86,2,3);
+}
+function drawBattery(){
+ R('#26262e',212,100,22,1);R('#26262e',212,82,1,18);
+ R('#9aa3d4',180,84,30,64);R('#0a0c18',182,86,26,60);R('#9aa3d4',190,80,10,4);
+ const cells=Math.ceil(S.power/10),low=S.power<=25;
+ for(let i=0;i<10;i++){const on=i<cells;let c=on?(S.power>50?'#5DCAA5':S.power>25?'#ffcc33':'#e24b4a'):'#1d2140';if(on&&low&&(T*4|0)%2)c='#5a1a1a';R(c,184,140-i*6,22,4)}
+ if(has('cold')){for(let i=0;i<14;i++)R('#bfeaff',179+((i*7)%32),84+((i*13)%62),1,1);
+  if((T*2|0)%2){R('#bfeaff',170,88,1,7);R('#bfeaff',167,91,7,1);R('#bfeaff',168,89,1,1);R('#bfeaff',172,93,1,1)}}
+}
+function drawBot(){
+ const x=Math.round(bot.x),yb=bot.out?55:150,y=yb-18;
+ const working=bot.state==='work';
+ if(working&&!bot.out){const sx=bot.spot.sx,sy=bot.spot.sy,ax=x+11;R('#8e98ad',ax,Math.min(sy,y+8),1,Math.abs(y+8-sy));R('#8e98ad',Math.min(ax,sx),sy,Math.abs(sx-ax)+1,1)}
+ R('#888',x+5,y,1,3);R((T*2|0)%2?'#e24b4a':'#7a1a1a',x+4,y-1,3,2);
+ R('#c9d1e0',x,y+3,12,7);R('#10223a',x+2,y+5,8,3);
+ const asleep=S.mode==='title'||(S.mode==='intro'&&S.introStep<3);
+ let eye=asleep?'#333a55':'#5df2ff';if(!asleep&&(T%3)<.12)eye='#10223a';
+ R(eye,x+3,y+6,2,1);R(eye,x+7,y+6,2,1);
+ R('#aeb8cc',x+1,y+10,10,5);R('#ffcc33',x+4,y+11,4,2);
+ if(working)R('#8e98ad',x+12,y+5+((T*16|0)%2),2,6);else{R('#8e98ad',x-2,y+10,2,4);R('#8e98ad',x+12,y+10,2,4)}
+ R('#3a3f55',x,y+15,12,3);const wf=bot.state==='walk'?(T*10|0)%2:0;R('#6b7280',x+1+wf,y+16,2,1);R('#6b7280',x+5+wf,y+16,2,1);R('#6b7280',x+9-wf,y+16,2,1);
+}
+function drawAstro(){
+ if(!S.astro)return;const a=S.astro,x=Math.round(a.x),y=55;
+ if(a.down){R('#e8e8f0',x-6,y-4,11,4);R('#fff',x-11,y-5,5,5);R('#e0a020',x-10,y-4,2,3);R('#e24b4a',x+2,y-5,2,1);return}
+ const step=a.run?(T*10|0)%2:0;
+ R('#fff',x,y-13,6,5);R('#e0a020',x+2,y-12,4,2);R('#e8e8f0',x,y-8,6,5);R('#bbb',x-2,y-8,2,4);
+ R('#ddd',x+step,y-3,2,3);R('#ddd',x+4-step,y-3,2,3);
+ if(!a.run)R('#e8e8f0',x+6,y-9+((T*3|0)%2),3,1);
+}
+function drawShip(){const y=Math.round(S.shipY),x=150;R('#e8e8f0',x,y,14,12);R('#c9d1e0',x+3,y-5,8,5);R('#378ADD',x+5,y+2,4,3);R('#888',x-2,y+10,3,3);R('#888',x+13,y+10,3,3);if(S.shipY<38)R((T*12|0)%2?'#ffcc33':'#ff7a3a',x+4,y+12,6,3+((T*12|0)%2)*2)}
+
+/* ---------- input ---------- */
+const ZONES={solar:[236,26,80,32],shield:[8,56,226,14],med:[8,70,88,88],air:[98,70,62,88],battery:[162,70,72,88]};
+function zoneAt(x,y){for(const k in ZONES){const z=ZONES[k];if(x>=z[0]&&x<z[0]+z[2]&&y>=z[1]&&y<z[1]+z[3])return k}return null}
+function toLogical(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H]}
+cv.addEventListener('mousemove',e=>{const[x,y]=toLogical(e);S.hover=zoneAt(x,y);if(S.mode==='play')$('tip').textContent=S.hover?`${MODINFO[S.hover].name}: tap to check it.`:'Tap a room to check on it.'});
+cv.addEventListener('mouseleave',()=>S.hover=null);
+cv.addEventListener('click',e=>{const[x,y]=toLogical(e);const z=zoneAt(x,y);if(z)openModule(z)});
+$('bMon').onclick=()=>{if(S.mode==='play'&&!S.busy)openMonitor()};
+$('bWake').onclick=wakeKai;
+$('bEnd').onclick=endDay;
+$('bSnd').onclick=()=>{muted=!muted;$('bSnd').textContent='SOUND: '+(muted?'OFF':'ON')};
+$('bubble').onclick=()=>$('bubble').style.display='none';
+
+/* ---------- UI helpers ---------- */
+function card(html,btns,light=false){return new Promise(res=>{
+ const c=$('card');c.innerHTML=html+'<div id="cbtns"></div>';const box=$('cbtns');
+ btns.forEach((b,i)=>{const e=document.createElement('button');e.className='opt';e.innerHTML=b.label;if(b.disabled)e.disabled=true;
+  e.onclick=()=>{snd(660,.05,'square',.04);$('modal').style.display='none';res(b.v!==undefined?b.v:i)};box.appendChild(e)});
+ $('modal').className=light?'light':'';$('modal').style.display='flex';c.scrollTop=0})}
+function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',2200)}
+function caption(t){const e=$('cap');e.textContent=t;e.style.opacity=1;clearTimeout(caption.t);caption.t=setTimeout(()=>e.style.opacity=0,1400)}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function costText(f){const p=[`${f.a} BOLT bar${f.a>1?'s':''}`];const N={power:'power',air:'air',hp:`Kai's health`,medkit:'medicine pack'};for(const k in f.c)p.push(`${f.c[k]} ${N[k]}`);return p.join(' + ')}
+function stormTonight(){return S.storms.find(s=>s.night===S.day)}
+function stormSoon(){return S.storms.find(s=>s.night>=S.day&&s.night-S.day<=1)}
+
+function updHUD(){
+ $('dayL').textContent=`DAY ${Math.min(S.day,7)}/7`;
+ for(const[k,id]of[['power','Pow'],['air','Air'],['shield','Shd'],['hp','Hp']]){$('f'+id).style.width=S[k]+'%';$('n'+id).textContent=S[k]}
+ $('pips').innerHTML=[...Array(S.boltMax)].map((_,i)=>`<span class="${i<S.bolt?'on':''}"></span>`).join('');
+ $('bWake').disabled=S.wakeUsed||S.mode!=='play';$('bWake').textContent=S.wakeUsed?'KAI IS RESTING':'WAKE KAI (-5 HEALTH)';
+ const s=S.mode==='play'&&stormSoon();const b=$('banner');
+ if(s){b.style.display='block';b.textContent=s.night===S.day?'! SOLAR STORM TONIGHT !':'! SOLAR STORM ALERT: TOMORROW NIGHT'}else b.style.display='none';
+}
+
+/* ---------- actions ---------- */
+function openModule(m){
+ if(S.busy||S.mode!=='play')return;snd(520,.05,'square',.04);
+ const probs=S.problems.filter(t=>PDEF[t].mod===m);
+ let h=`<h2>${MODINFO[m].name.toUpperCase()}</h2><p>${MODINFO[m].stat()}</p>`;const btns=[];
+ if(!probs.length)h+=`<p style="color:var(--ok)">No problems here right now.</p>`;
+ for(const t of probs){const d=PDEF[t];h+=`<div class="prob"><b style="color:#ff8a8a">! ${d.name}</b><br>${d.effect}<div class="fact"><b>Why?</b> ${d.fact}</div></div>`;
+  for(const f of d.fixes)btns.push({label:`FIX: ${f.t}<br><span class="cost">Costs: ${costText(f)}</span>`,v:{kind:'fix',t,f},disabled:S.bolt<f.a})}
+ const b=BOOST[m];if(b)btns.push({label:`${b.t}<br><span class="cost">Costs: ${costText(b)}</span>`,v:{kind:'boost',m,b},disabled:S.bolt<b.a||(b.c.medkit&&S.medkits<1)});
+ h+=`<div class="fact">${MODINFO[m].fact}</div>`;
+ if(S.bolt<1)h+=`<p style="color:#ffd27a">BOLT is out of battery today. Tap END DAY to recharge.</p>`;
+ btns.push({label:'CLOSE',v:null});
+ card(h,btns).then(v=>{if(v)doAction(m,v)});
+}
+function doAction(m,v){
+ const f=v.kind==='fix'?v.f:v.b;S.bolt-=f.a;S.busy=true;updHUD();
+ sendBot(m,()=>{
+  for(const k in f.c){if(k==='medkit')S.medkits-=f.c[k];else S[k]-=f.c[k]}
+  if(v.kind==='fix'){S.problems=S.problems.filter(x=>x!==v.t);if(f.again)S.recur=true;toast('Fixed: '+PDEF[v.t].name)}
+  else{const e=v.b.eff;if(e.solarBonus)S.solarBonus+=e.solarBonus;for(const k of['power','air','shield','hp'])if(e[k])S[k]+=e[k];toast('Done!')}
+  clampAll();S.busy=false;snd(880,.08,'square',.04);setTimeout(()=>snd(1320,.12,'square',.04),90);updHUD();
+  if(S.hp<=0)endGame(false);
+ });
+}
+function hint(){
+ const s=stormSoon();
+ if(s&&(S.shield<70||has('gap')))return`A solar storm is coming! Make the shield strong first. Radiation is the biggest danger.`;
+ if(S.air<40||has('leak')||has('filter'))return`Check the air, BOLT! People can only last a few minutes without oxygen.`;
+ if(S.power<40||has('crack')||has('dust')||has('cold'))return`Keep the power up. No power means the oxygen machine stops.`;
+ if(S.hp<40)return`I feel weak. A medicine pack would help, but we only have a few.`;
+ return`You're doing great, BOLT. Check the Monitor every morning.`;
+}
+function kaiSay(t){S.kaiAwake=6;const b=$('bubble');b.textContent='KAI: '+t;b.style.display='block';clearTimeout(kaiSay.t);kaiSay.t=setTimeout(()=>b.style.display='none',8000);snd(400,.1,'triangle',.06);setTimeout(()=>snd(500,.1,'triangle',.06),120)}
+function wakeKai(){if(S.busy||S.wakeUsed||S.mode!=='play')return;S.wakeUsed=true;S.hp-=5;clampAll();kaiSay(hint());updHUD();if(S.hp<=0)endGame(false)}
+function openMonitor(){
+ snd(520,.05,'square',.04);
+ let h='<h2>BASE MONITOR</h2>';const s=stormSoon();
+ if(s)h+=`<div class="prob"><b style="color:#ff8a8a">SOLAR STORM ${s.night===S.day?'TONIGHT':'TOMORROW NIGHT'}</b><br>Based on a real event: ${s.d.what}, ${s.d.date}. ${s.d.note}<br><span class="src">Source: NASA DONKI space weather database. Historical record, not live.</span></div><p>Tip: a stronger shield blocks more radiation. Fix any cracks first!</p>`;
+ else{const nx=S.storms.find(x=>x.night>S.day);h+=`<p>Space weather: quiet for now.${nx?' Scientists are watching the Sun.':''}</p>`}
+ h+='<p><b>Problems right now:</b></p>';
+ if(!S.problems.length)h+=`<p style="color:var(--ok)">All systems OK.</p>`;
+ for(const t of S.problems)h+=`<p>! ${MODINFO[PDEF[t].mod].name}: ${PDEF[t].name}. <span class="cost">${PDEF[t].effect}</span></p>`;
+ h+=`<p><b>Tonight, if nothing changes:</b> power ${sgn(estPower())}, air ${sgn(estAir())}${has('gap')?', shield -10':''}</p>`;
+ card(h,[{label:'CLOSE'}]);
+}
+
+/* ---------- day / night ---------- */
+function row(l,a,b){const d=b-a;return`<p>${l}: ${a} &rarr; ${b} <span style="color:${d<0?'#ff8a8a':d>0?'#5dcaa5':'#9aa3d4'}">(${sgn(d)})</span></p>`}
+async function endDay(){
+ if(S.busy||S.mode!=='play')return;S.busy=true;$('bubble').style.display='none';
+ snd(300,.4,'triangle',.05,-150);S.nightT=.6;caption(`NIGHT ${S.day}`);await sleep(1300);
+ const b={power:S.power,air:S.air,shield:S.shield,hp:S.hp},notes=[];
+ const st=stormTonight();
+ if(st){
+  const c=await card(`<h2>SOLAR STORM ARRIVING!</h2><p>A ${st.d.what} is hitting the Moon. This storm is based on a real event from ${st.d.date}.</p><p>Kai is asleep. BOLT must decide.</p>`,
+   [{label:`Move Kai into the storm shelter<br><span class="cost">Blocks most radiation, but moving hurts Kai's leg: -6 health</span>`},
+    {label:`Let Kai stay in bed<br><span class="cost">Kai rests, but only the shield (${S.shield}/100) protects</span>`}]);
+  S.nightT=.25;S.stormFx=4.2;S.shake=1.6;S.flash=1;alarm();await sleep(4400);S.nightT=.6;
+  let dmg=st.d.power*(1-S.shield/100)+(has('gap')?10:0);if(c===0){S.hp-=6;dmg*=.4}dmg=Math.round(dmg);
+  S.hp-=dmg;S.shield-=8;notes.push(`The storm hit! Kai took ${dmg} radiation damage.${c===0?' The shelter helped a lot.':''}`);S.survived.push(st.d);
+  if(Math.random()<.6)addProblem('gap');if(Math.random()<.4)addProblem('crack');
+ } else if(S.day>=2&&Math.random()<.55){
+  const pool=DILEMMAS.filter(d=>!d.ok||d.ok());const d=pool[Math.random()*pool.length|0];snd(500,.15,'triangle',.05);
+  const c=await card(`<h2>${d.title.toUpperCase()}</h2><p>${d.text}</p>`,[{label:`${d.a.t}<br><span class="cost">${d.a.c}</span>`},{label:`${d.b.t}<br><span class="cost">${d.b.c}</span>`}]);
+  (c===0?d.a:d.b).f();clampAll();
+ }
+ S.power+=estPower();
+ const make=(has('filter')||S.power<=0)?0:18;S.air+=make-14-(has('leak')?12:0);
+ if(has('gap'))S.shield-=10;
+ clampAll();
+ if(S.air<25){S.hp-=15;notes.push('Air is very low. Kai is struggling to breathe.')}else if(S.air<50)S.hp-=4;
+ if(S.power<=0){S.hp-=12;notes.push('No power! The base got freezing cold.')}
+ if(S.air>=50&&S.power>0&&!st){S.hp+=5;notes.push('Kai rested and healed a little.')}
+ if(S.recur){S.recur=false;if(Math.random()<.5){addProblem('crack');notes.push('The tape patch failed. The panel cracked again.')}}
+ const n=S.day===1?1:(Math.random()<.5?1:2);
+ for(let i=0;i<n;i++){const opts=Object.keys(PDEF).filter(t=>!has(t));if(!opts.length)break;const t=opts[Math.random()*opts.length|0];addProblem(t);notes.push('New problem: '+PDEF[t].name+'.')}
+ S.solarBonus=0;clampAll();updHUD();
+ await card(`<h2>NIGHT ${S.day} REPORT</h2>${row('Power',b.power,S.power)}${row('Air',b.air,S.air)}${row('Shield',b.shield,S.shield)}${row(`Kai's health`,b.hp,S.hp)}${notes.map(x=>`<p>${x}</p>`).join('')}`,
+  [{label:S.hp<=0?'CONTINUE':(S.day>=7?'MORNING OF DAY 8...':`START DAY ${S.day+1}`)}]);
+ S.busy=false;
+ if(S.hp<=0)return endGame(false);
+ if(S.day>=7)return endGame(true);
+ S.day++;S.bolt=S.boltMax-S.boltPenalty;S.boltPenalty=0;S.wakeUsed=false;S.nightT=0;updHUD();caption(`DAY ${S.day}`);snd(520,.1,'triangle',.05);setTimeout(()=>snd(780,.15,'triangle',.05),140);
+ const s=stormSoon();if(s)setTimeout(()=>alarm(4),600);
+ if(Math.random()<.35)setTimeout(()=>kaiSay(hint()),1500);
+}
+
+/* ---------- screens ---------- */
+const LEARN=`<div class="fact"><b>What real astronauts face:</b> no air outside, strong radiation from the Sun, and every repair costs time, power, or air. Space missions are all about smart trade-offs, just like the ones you made.</div>`;
+function endGame(win){
+ S.mode='end';S.win=win;S.nightT=win?0:.5;updHUD();
+ if(win){snd(523,.15);setTimeout(()=>snd(659,.15),160);setTimeout(()=>snd(784,.15),320);setTimeout(()=>snd(1046,.3),480)}else snd(200,.6,'sawtooth',.05,-120);
+ const grade=S.hp>=70?'HERO ROBOT':S.hp>=35?'STEADY HELPER':'CLOSE CALL';
+ const storms=S.survived.map(d=>`<li>${d.what}, ${d.date}. ${d.note}</li>`).join('')||'<li>None reached the base this time.</li>';
+ const h=win?`<h2>THE RESCUE SHIP HAS LANDED!</h2><p>Kai made it through all 7 days. Kai's health: ${S.hp}/100.</p><p class="title" style="font-size:14px">RANK: ${grade}</p><p><b>Real solar storms you survived:</b></p><ul>${storms}</ul><p class="src">Storm data: NASA DONKI space weather database (historical records saved in the game, not live).</p>`
+  :`<h2>MISSION FAILED</h2><p>Kai's health reached zero on day ${S.day}. The rescue team had to rush in early.</p><p>Try again! Tip: fix problems before they pile up, and make the shield strong before a storm.</p>`;
+ setTimeout(()=>card(h+LEARN,[{label:'PLAY AGAIN'},{label:'ABOUT THE DATA'}]).then(c=>{if(c===1)aboutData().then(()=>location.reload());else location.reload()}),win?2500:800);
+}
+function aboutData(){return card(`<h2>ABOUT THE DATA</h2>
+<p><b>Solar storms:</b> NASA DONKI (Space Weather Database Of Notifications, Knowledge, Information), kauai.ccmc.gsfc.nasa.gov/DONKI. We picked 6 real flares and CMEs from 2011 to 2024. They are historical records saved in the game, not live data. Each game picks 2 of them.</p>
+<p><b>Intro storm:</b> the real solar storm of August 4, 1972, between Apollo 16 and Apollo 17 (NASA history).</p>
+<p><b>Oxygen:</b> about 0.84 kg per person per day (NASA life support research).</p>
+<p><b>Radiation limit:</b> 600 millisieverts for a whole career (NASA astronaut health standard, 2022).</p>
+<p><b>Moon facts:</b> lunar night of about 14 Earth days, sunlit hills at the south pole, sharp Moon dust, and the 2013 impact flash (NASA Moon science and NASA Lunar Impact Monitoring).</p>
+<p class="src">Game numbers like "+18 air" are simple game points, not real units. Made by team Junior Moonbase Crew for the NASA Space Apps Challenge. Game idea and design by the team. Code written with AI help (Claude by Anthropic). All art is drawn with code. Not an official NASA product.</p>`,[{label:'BACK'}])}
+function showIntro(i){
+ S.mode='intro';S.introStep=i;S.kaiInBed=i>=3;
+ if(i===0)S.astro={x:208,run:false};
+ if(i===1){S.stormFx=99;S.flash=1;alarm(6)}else S.stormFx=0;
+ if(i===2){S.astro={x:208,run:true};S.shake=.6;snd(160,.3,'sawtooth',.05,-60);P=[]}
+ if(i===3){S.astro=null;S.flash=.7;S.problems=['crack','gap'];snd(440,.1);setTimeout(()=>snd(660,.1),120);setTimeout(()=>snd(880,.18),240)}
+ const TXT=[
+  `A Moon base near the Moon's south pole, where NASA's Artemis missions plan to explore. Commander Kai is outside, fixing the radio antenna. You are BOLT, the base helper robot. Right now you are in sleep mode.`,
+  `Suddenly the Sun erupts! A huge solar storm blasts radiation toward the Moon. A storm like this really happened on August 4, 1972, between the Apollo 16 and Apollo 17 Moon missions. Luckily, no one was on the Moon that day.`,
+  `Kai races back to the base, trips on a rock, and hurts a leg. Kai also got hit by radiation. The storm cracked a solar panel and the radiation shield, too.`,
+  `BOLT wakes up. A message blinks on the screen: RESCUE SHIP ARRIVES IN 7 DAYS. KEEP COMMANDER KAI ALIVE.`];
+ card(`<p class="h" style="font-size:10px;color:var(--dim)">PART ${i+1} OF 4</p><p>${TXT[i]}</p>`,[{label:i<3?'NEXT':'START MISSION'}],true).then(()=>{if(i<3)showIntro(i+1);else howTo()});
+}
+function howTo(){
+ card(`<h2>HOW TO PLAY</h2><ul>
+<li>Tap a room to see what is wrong and how to fix it.</li>
+<li>BOLT has <b>4 battery bars</b> each day. Every fix uses some.</li>
+<li>Every choice costs something. Pick what matters most!</li>
+<li>Check the <b>MONITOR</b> for solar storm warnings.</li>
+<li>Tap <b>END DAY</b> when you are done. Things happen at night.</li>
+<li>Keep Kai's health above zero for <b>7 days</b> to win.</li></ul>`,[{label:"LET'S GO"}]).then(()=>{S.mode='play';setupStorms();updHUD();caption('DAY 1');setTimeout(()=>kaiSay(`BOLT... the shield is cracked... and a solar panel too. Please... keep us going.`),1600)});
+}
+function setupStorms(){const pool=[...STORMS].sort(()=>Math.random()-.5);S.storms=[{night:3+(Math.random()<.5?0:1),d:pool[0]},{night:6+(Math.random()<.5?0:1),d:pool[1]}]}
+function title(){
+ updHUD();
+ card(`<p class="title">BOLT:<br>7 DAYS ON THE MOON</p><p>Commander Kai is hurt. You are BOLT, the base robot. Keep the Moon base running and keep Kai alive until the rescue ship arrives.</p><p class="src">A Junior Astronaut Mission Trainer by team Junior Moonbase Crew. Uses real NASA space weather data. Code written with AI help.</p>`,
+  [{label:'START'},{label:'ABOUT THE DATA'}]).then(c=>{snd(660,.1);if(c===1)aboutData().then(title);else showIntro(0)});
+}
+
+/* ---------- loop ---------- */
+let last=performance.now();
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw();requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+title();
+</script>
+</body>
+</html>
