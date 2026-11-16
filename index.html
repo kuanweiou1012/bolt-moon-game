@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BOLT: 7 Days on the Moon</title>
+<title>BOLT: 5 Days on the Moon</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0b0d1e;--panel:#161a36;--line:#3a4180;--txt:#e8ecff;--dim:#9aa3d4;--pow:#ffcc33;--air:#5dcaff;--shd:#a98bff;--hp:#ff6b8a;--red:#e24b4a;--ok:#5dcaa5}
@@ -48,13 +48,17 @@ button:disabled{opacity:.4;cursor:not-allowed}
 #bubble:after{content:'';position:absolute;bottom:-12px;left:20px;border:6px solid transparent;border-top-color:#111}
 #cap{position:absolute;top:40%;left:0;right:0;text-align:center;font-family:'Press Start 2P',monospace;font-size:22px;color:#fff;text-shadow:3px 3px 0 #000;opacity:0;transition:opacity .5s;pointer-events:none}
 #toast{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:#0f6e56;color:#fff;padding:4px 10px;border:2px solid #5dcaa5;display:none;pointer-events:none;white-space:nowrap}
+#mg{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:6;padding:10px}
+#mgBox{background:var(--panel);border:3px solid #ffcc33;padding:12px;width:min(680px,96vw)}
+#mgTxt{margin:0 0 8px;color:#ffd27a;min-height:28px}
+#mgc{width:100%;display:block;image-rendering:pixelated;touch-action:none;cursor:grab;border:2px solid var(--line)}
 .title{font-family:'Press Start 2P',monospace;font-size:20px;line-height:1.5;color:var(--pow);margin:4px 0 8px}
 </style>
 </head>
 <body>
 <div id="app">
   <div id="hud">
-    <span class="h" id="dayL">DAY 1/7</span>
+    <span class="h" id="dayL">DAY 1/5</span>
     <div class="bar"><span style="color:var(--pow)">POWER</span><div class="t"><div class="f" id="fPow" style="background:var(--pow)"></div></div><span class="n" id="nPow"></span></div>
     <div class="bar"><span style="color:var(--air)">AIR</span><div class="t"><div class="f" id="fAir" style="background:var(--air)"></div></div><span class="n" id="nAir"></span></div>
     <div class="bar"><span style="color:var(--shd)">SHIELD</span><div class="t"><div class="f" id="fShd" style="background:var(--shd)"></div></div><span class="n" id="nShd"></span></div>
@@ -82,6 +86,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
   <div id="tip">Tap a room to check on it.</div>
 </div>
 <div id="modal"><div id="card"></div></div>
+<div id="mg"><div id="mgBox"><p class="h" style="font-size:10px;color:var(--dim);margin:0 0 6px">BOLT'S HANDS: REPAIR TIME</p><p id="mgTxt"></p><canvas id="mgc" width="200" height="120"></canvas><button id="mgQuit" style="margin-top:8px">STOP (NO JOB USED)</button></div></div>
 
 <script>
 const $=id=>document.getElementById(id);
@@ -99,12 +104,12 @@ const STORMS=[
 ];
 
 const PDEF={
- dust:{mod:'solar',name:'Moon dust on the solar panels',effect:'Panels make half as much power.',fact:'Moon dust is sharp like tiny bits of glass and sticks to everything. Apollo astronauts found it on their suits, their tools, and even in their noses.',fixes:[{t:'Brush the dust off',a:1,c:{air:4}}]},
- crack:{mod:'solar',name:'Cracked solar panel',effect:'Panels make 70% less power.',fact:'Tiny space rocks called micrometeoroids hit the Moon all the time. There is no air to slow them down, so even a grain of sand can crack glass.',fixes:[{t:'Quick tape patch (it might crack again)',a:1,c:{air:4},again:true},{t:'Replace the whole panel',a:2,c:{air:4,power:5}}]},
- filter:{mod:'air',name:'Clogged air filter',effect:'The oxygen machine makes NO oxygen.',fact:'One person breathes about 0.84 kg of oxygen every day (NASA). The machine has to keep making it, day and night.',fixes:[{t:'Clean the filter',a:1,c:{power:6}}]},
- leak:{mod:'air',name:'Air leak in a pipe',effect:'Lose 12 extra air every night.',fact:'Outside the base is a vacuum: empty space with no air at all. Any tiny hole lets air rush out.',fixes:[{t:'Seal the leak',a:2,c:{}}]},
- gap:{mod:'shield',name:'Crack in the radiation shield',effect:'Shield drops 10 every night, and storms hit harder.',fact:'The Moon has no thick air and no magnetic field to block radiation from the Sun. Covering a base with Moon soil (called regolith) is one way to block it.',fixes:[{t:'Fill the crack with Moon soil',a:1,c:{power:4}}]},
- cold:{mod:'battery',name:'Battery is freezing',effect:'Lose 12 power every night.',fact:'In the shade, the Moon can get colder than -170 C. Batteries work badly in the cold, so bases have to keep them warm.',fixes:[{t:'Turn on the battery heater',a:1,c:{power:6}}]}
+ dust:{mod:'solar',name:'Moon dust on the solar panels',effect:'Panels make half as much power.',fact:'Moon dust is sharp like tiny bits of glass and sticks to everything. Apollo astronauts found it on their suits, their tools, and even in their noses.',fixes:[{t:'Brush the dust off (rub it clean)',a:1,c:{air:4},mg:'dust'}]},
+ crack:{mod:'solar',name:'Loose solar panel cable',effect:'Panels make 70% less power.',fact:'On the Moon, sunlight can heat metal to over 100 C and the shade can freeze it below -170 C. Big hot and cold swings make parts grow and shrink, which can shake cables loose. Tiny space rocks called micrometeoroids also hit all the time.',fixes:[{t:'Plug the cable back in (drag the plug)',a:1,c:{air:4},mg:'loose'}]},
+ filter:{mod:'air',name:'Clogged air filter',effect:'The oxygen machine makes NO oxygen.',fact:'One person breathes about 0.84 kg of oxygen every day (NASA). The machine has to keep making it, day and night.',fixes:[{t:'Swap in a clean filter (drag it out, drag it in)',a:1,c:{power:4},mg:'filter'}]},
+ leak:{mod:'air',name:'Air leak in a pipe',effect:'Lose 8 extra air every night.',fact:'Outside the base is a vacuum: empty space with no air at all. Any tiny hole lets air rush out.',fixes:[{t:'Patch the leak (drag the patch, press it on)',a:1,c:{},mg:'leak'}]},
+ gap:{mod:'shield',name:'Crack in the radiation shield',effect:'Shield drops 6 every night, and storms hit harder.',fact:'The Moon has no thick air and no magnetic field to block radiation from the Sun. Covering a base with Moon soil (called regolith) is one way to block it.',fixes:[{t:'Fill the cracks with Moon-soil bags (drag them in)',a:1,c:{power:4},mg:'gap'}]},
+ cold:{mod:'battery',name:'Battery is freezing',effect:'Lose 8 power every night.',fact:'In the shade, the Moon can get colder than -170 C. Batteries work badly in the cold, so bases have to keep them warm.',fixes:[{t:'Crank the battery heater (spin the handle)',a:1,c:{power:4},mg:'cold'}]}
 };
 const BOOST={
  solar:{t:'Turn the panels to face the Sun (+10 power tonight)',a:1,c:{air:4},eff:{solarBonus:10}},
@@ -116,7 +121,7 @@ const BOOST={
 const MODINFO={
  solar:{name:'Solar panels',stat:()=>`Panels turn sunlight into power. Tonight they will make about +${prodEst()} power.`,fact:`<b>Real fact:</b> Some hills near the Moon's south pole get sunlight almost all the time. That is one reason NASA's Artemis missions want to go there.`},
  shield:{name:'Radiation shield',stat:()=>`Shield strength: ${S.shield}/100. A stronger shield blocks more radiation in a solar storm.`,fact:`<b>Real fact:</b> On Earth, our air and magnetic field protect us from solar storms. On the Moon, there is nothing, so the base needs its own shield.`},
- air:{name:'Oxygen machine',stat:()=>`Air: ${S.air}/100. Kai uses 14 air every night. The machine makes 18 when it works.`,fact:`<b>Real fact:</b> Every trip outside through the airlock lets a little air escape. That is why outside repairs cost air.`},
+ air:{name:'Oxygen machine',stat:()=>`Air: ${S.air}/100. Kai uses 14 air every night. The machine makes 20 when it works.`,fact:`<b>Real fact:</b> Every trip outside through the airlock lets a little air escape. That is why outside repairs cost air.`},
  battery:{name:'Battery',stat:()=>`Power: ${S.power}/100. The base uses 28 power every night (air machine, heat, med bed).`,fact:`<b>Real fact:</b> One night on the Moon lasts about 14 Earth days. Bases need big batteries to get through the dark.`},
  med:{name:'Med bay',stat:()=>`Kai's health: ${S.hp}/100. Medicine packs left: ${S.medkits}.`,fact:`<b>Real fact:</b> NASA sets a radiation limit for an astronaut's whole career: 600 millisieverts. That is about as much as 6,000 chest X-rays.`}
 };
@@ -136,13 +141,14 @@ const DILEMMAS=[
 ];
 
 /* ---------- state ---------- */
-const S={mode:'title',introStep:0,day:1,power:70,air:70,shield:55,hp:55,bolt:4,boltMax:4,problems:[],storms:[],medkits:2,wakeUsed:false,solarBonus:0,recur:false,stormFx:0,shake:0,flash:0,nightA:0,nightT:0,kaiAwake:0,kaiInBed:false,survived:[],hover:null,busy:false,boltPenalty:0,astro:null,win:false,shipY:-30};
+const DAYS=5;
+const S={mode:'title',introStep:0,day:1,power:75,air:75,shield:60,hp:60,bolt:3,boltMax:3,problems:[],storms:[],medkits:3,endT:0,endShown:false,ppl:[],flame:false,botHop:0,said:{},wakeUsed:false,solarBonus:0,recur:false,stormFx:0,shake:0,flash:0,nightA:0,nightT:0,kaiAwake:0,kaiInBed:false,survived:[],hover:null,busy:false,boltPenalty:0,astro:null,win:false,shipY:-30};
 const has=t=>S.problems.includes(t);
 function addProblem(t){if(!has(t))S.problems.push(t)}
 function clampAll(){for(const k of['power','air','shield','hp'])S[k]=Math.max(0,Math.min(100,Math.round(S[k])));if(S.medkits<0)S.medkits=0}
-function prodEst(){let p=32+S.solarBonus;if(has('dust'))p*=.5;if(has('crack'))p*=.3;return Math.round(p)}
-function estPower(){return prodEst()-28-(has('cold')?12:0)}
-function estAir(){const make=(has('filter')||S.power+estPower()<=0)?0:18;return make-14-(has('leak')?12:0)}
+function prodEst(){let p=34+S.solarBonus;if(has('dust'))p*=.5;if(has('crack'))p*=.3;return Math.round(p)}
+function estPower(){return prodEst()-28-(has('cold')?8:0)}
+function estAir(){const make=(has('filter')||S.power+estPower()<=0)?0:20;return make-14-(has('leak')?8:0)}
 const sgn=n=>(n>=0?'+':'')+n;
 
 /* ---------- sound ---------- */
@@ -162,8 +168,8 @@ const bot={x:50,out:false,state:'idle',tx:50,work:0,goOut:false,cb:null,spot:nul
 const SPOT={med:{x:72,sx:40,sy:128},air:{x:118,sx:144,sy:96},battery:{x:212,sx:195,sy:112},shield:{x:110,sx:116,sy:68},solar:{x:224,sx:272,sy:42}};
 function sendBot(m,cb){if(bot.out){bot.out=false;bot.x=224}bot.tx=SPOT[m].x;bot.goOut=m==='solar';bot.spot=SPOT[m];bot.cb=cb;bot.state='walk'}
 function updBot(dt){
- if(bot.state==='walk'){const d=bot.tx-bot.x,st=75*dt;
-  if(Math.abs(d)<=st){bot.x=bot.tx;if(bot.goOut&&!bot.out){bot.out=true;bot.x=258;snd(260,.25,'triangle',.05,-120)}bot.state='work';bot.work=1.3}
+ if(bot.state==='walk'){const d=bot.tx-bot.x,st=110*dt;
+  if(Math.abs(d)<=st){bot.x=bot.tx;if(bot.goOut&&!bot.out){bot.out=true;bot.x=258;snd(260,.25,'triangle',.05,-120)}bot.state='work';bot.work=.9}
   else bot.x+=Math.sign(d)*st}
  else if(bot.state==='work'){bot.work-=dt;if(Math.random()<.6)spark(bot.spot.sx,bot.spot.sy);if(Math.random()<.2)snd(1100+Math.random()*700,.03,'square',.015);
   if(bot.work<=0){bot.state='idle';if(bot.out){bot.out=false;bot.x=222}const cb=bot.cb;bot.cb=null;cb&&cb()}}
@@ -194,7 +200,7 @@ function update(dt){
   if(p.passed&&p.y>150)p.life=0}
  P=P.filter(p=>p.life>0&&p.y<185);
  if(S.astro&&S.astro.run){S.astro.x+=dt*24;if(S.astro.x>=226){S.astro.run=false;S.astro.down=true;S.shake=.8;snd(90,.3,'sawtooth',.06)}}
- if(S.mode==='end'&&S.win)S.shipY+=(40-S.shipY)*Math.min(1,dt*.8);
+ if(S.mode==='end'&&S.win)endAnim(dt);
 }
 
 /* ---------- drawing ---------- */
@@ -225,6 +231,7 @@ function draw(){
  drawShield();drawMed();drawAir();drawBattery();
  drawAstro();
  drawBot();
+ if(S.mode==='end'&&S.win)drawPeople();
  for(const p of P)R(p.c,p.x,p.y,p.sz||1,p.sz||1);
  if(S.mode==='play'){
   if(has('dust')||has('crack'))bang(268,26);
@@ -293,7 +300,7 @@ function drawBattery(){
   if((T*2|0)%2){R('#bfeaff',170,88,1,7);R('#bfeaff',167,91,7,1);R('#bfeaff',168,89,1,1);R('#bfeaff',172,93,1,1)}}
 }
 function drawBot(){
- const x=Math.round(bot.x),yb=bot.out?55:150,y=yb-18;
+ const x=Math.round(bot.x),yb=bot.out?55:150,y=yb-18-(S.botHop||0);
  const working=bot.state==='work';
  if(working&&!bot.out){const sx=bot.spot.sx,sy=bot.spot.sy,ax=x+11;R('#8e98ad',ax,Math.min(sy,y+8),1,Math.abs(y+8-sy));R('#8e98ad',Math.min(ax,sx),sy,Math.abs(sx-ax)+1,1)}
  R('#888',x+5,y,1,3);R((T*2|0)%2?'#e24b4a':'#7a1a1a',x+4,y-1,3,2);
@@ -303,7 +310,7 @@ function drawBot(){
  R(eye,x+3,y+6,2,1);R(eye,x+7,y+6,2,1);
  R('#aeb8cc',x+1,y+10,10,5);R('#ffcc33',x+4,y+11,4,2);
  if(working)R('#8e98ad',x+12,y+5+((T*16|0)%2),2,6);else{R('#8e98ad',x-2,y+10,2,4);R('#8e98ad',x+12,y+10,2,4)}
- R('#3a3f55',x,y+15,12,3);const wf=bot.state==='walk'?(T*10|0)%2:0;R('#6b7280',x+1+wf,y+16,2,1);R('#6b7280',x+5+wf,y+16,2,1);R('#6b7280',x+9-wf,y+16,2,1);
+ R('#3a3f55',x,y+15,12,3);const wf=(bot.state==='walk'||S.botWalk)?(T*10|0)%2:0;R('#6b7280',x+1+wf,y+16,2,1);R('#6b7280',x+5+wf,y+16,2,1);R('#6b7280',x+9-wf,y+16,2,1);
 }
 function drawAstro(){
  if(!S.astro)return;const a=S.astro,x=Math.round(a.x),y=55;
@@ -313,7 +320,10 @@ function drawAstro(){
  R('#ddd',x+step,y-3,2,3);R('#ddd',x+4-step,y-3,2,3);
  if(!a.run)R('#e8e8f0',x+6,y-9+((T*3|0)%2),3,1);
 }
-function drawShip(){const y=Math.round(S.shipY),x=150;R('#e8e8f0',x,y,14,12);R('#c9d1e0',x+3,y-5,8,5);R('#378ADD',x+5,y+2,4,3);R('#888',x-2,y+10,3,3);R('#888',x+13,y+10,3,3);if(S.shipY<38)R((T*12|0)%2?'#ffcc33':'#ff7a3a',x+4,y+12,6,3+((T*12|0)%2)*2)}
+function drawShip(){const y=Math.round(S.shipY),x=150;
+ R('#c9d1e0',x+4,y-7,8,3);R('#e8e8f0',x+2,y-4,12,4);R('#e8e8f0',x,y,16,12);R('#378ADD',x+5,y+2,6,4);R('#fff',x+6,y+2,2,1);R('#ff7a1a',x,y+7,16,2);
+ R('#888',x-3,y+9,3,4);R('#888',x+16,y+9,3,4);R('#666',x-4,y+12,4,1);R('#666',x+16,y+12,4,1);
+ if(S.flame){const f=(T*12|0)%2;R(f?'#ffcc33':'#ff7a3a',x+4,y+12,8,3+f*3);R('#fff2a8',x+6,y+12,4,2)}}
 
 /* ---------- input ---------- */
 const ZONES={solar:[236,26,80,32],shield:[8,56,226,14],med:[8,70,88,88],air:[98,70,62,88],battery:[162,70,72,88]};
@@ -321,7 +331,7 @@ function zoneAt(x,y){for(const k in ZONES){const z=ZONES[k];if(x>=z[0]&&x<z[0]+z
 function toLogical(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H]}
 cv.addEventListener('mousemove',e=>{const[x,y]=toLogical(e);S.hover=zoneAt(x,y);if(S.mode==='play')$('tip').textContent=S.hover?`${MODINFO[S.hover].name}: tap to check it.`:'Tap a room to check on it.'});
 cv.addEventListener('mouseleave',()=>S.hover=null);
-cv.addEventListener('click',e=>{const[x,y]=toLogical(e);const z=zoneAt(x,y);if(z)openModule(z)});
+cv.addEventListener('click',e=>{if(S.mode==='end'&&S.win&&!S.endShown){S.endT=Math.max(S.endT,18.9);return}const[x,y]=toLogical(e);const z=zoneAt(x,y);if(z)openModule(z)});
 $('bMon').onclick=()=>{if(S.mode==='play'&&!S.busy)openMonitor()};
 $('bWake').onclick=wakeKai;
 $('bEnd').onclick=endDay;
@@ -336,13 +346,13 @@ function card(html,btns,light=false){return new Promise(res=>{
  $('modal').className=light?'light':'';$('modal').style.display='flex';c.scrollTop=0})}
 function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',2200)}
 function caption(t){const e=$('cap');e.textContent=t;e.style.opacity=1;clearTimeout(caption.t);caption.t=setTimeout(()=>e.style.opacity=0,1400)}
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function costText(f){const p=[`${f.a} BOLT bar${f.a>1?'s':''}`];const N={power:'power',air:'air',hp:`Kai's health`,medkit:'medicine pack'};for(const k in f.c)p.push(`${f.c[k]} ${N[k]}`);return p.join(' + ')}
 function stormTonight(){return S.storms.find(s=>s.night===S.day)}
 function stormSoon(){return S.storms.find(s=>s.night>=S.day&&s.night-S.day<=1)}
 
 function updHUD(){
- $('dayL').textContent=`DAY ${Math.min(S.day,7)}/7`;
+ $('dayL').textContent=`DAY ${Math.min(S.day,DAYS)}/${DAYS}`;
  for(const[k,id]of[['power','Pow'],['air','Air'],['shield','Shd'],['hp','Hp']]){$('f'+id).style.width=S[k]+'%';$('n'+id).textContent=S[k]}
  $('pips').innerHTML=[...Array(S.boltMax)].map((_,i)=>`<span class="${i<S.bolt?'on':''}"></span>`).join('');
  $('bWake').disabled=S.wakeUsed||S.mode!=='play';$('bWake').textContent=S.wakeUsed?'KAI IS RESTING':'WAKE KAI (-5 HEALTH)';
@@ -364,8 +374,10 @@ function openModule(m){
  btns.push({label:'CLOSE',v:null});
  card(h,btns).then(v=>{if(v)doAction(m,v)});
 }
-function doAction(m,v){
- const f=v.kind==='fix'?v.f:v.b;S.bolt-=f.a;S.busy=true;updHUD();
+async function doAction(m,v){
+ const f=v.kind==='fix'?v.f:v.b;
+ if(f.mg){S.busy=true;const ok=await miniGame(f.mg);S.busy=false;if(!ok){toast('Not fixed yet.');return}}
+ S.bolt-=f.a;S.busy=true;updHUD();
  sendBot(m,()=>{
   for(const k in f.c){if(k==='medkit')S.medkits-=f.c[k];else S[k]-=f.c[k]}
   if(v.kind==='fix'){S.problems=S.problems.filter(x=>x!==v.t);if(f.again)S.recur=true;toast('Fixed: '+PDEF[v.t].name)}
@@ -392,7 +404,7 @@ function openMonitor(){
  h+='<p><b>Problems right now:</b></p>';
  if(!S.problems.length)h+=`<p style="color:var(--ok)">All systems OK.</p>`;
  for(const t of S.problems)h+=`<p>! ${MODINFO[PDEF[t].mod].name}: ${PDEF[t].name}. <span class="cost">${PDEF[t].effect}</span></p>`;
- h+=`<p><b>Tonight, if nothing changes:</b> power ${sgn(estPower())}, air ${sgn(estAir())}${has('gap')?', shield -10':''}</p>`;
+ h+=`<p><b>Tonight, if nothing changes:</b> power ${sgn(estPower())}, air ${sgn(estAir())}${has('gap')?', shield -6':''}</p>`;
  card(h,[{label:'CLOSE'}]);
 }
 
@@ -400,38 +412,38 @@ function openMonitor(){
 function row(l,a,b){const d=b-a;return`<p>${l}: ${a} &rarr; ${b} <span style="color:${d<0?'#ff8a8a':d>0?'#5dcaa5':'#9aa3d4'}">(${sgn(d)})</span></p>`}
 async function endDay(){
  if(S.busy||S.mode!=='play')return;S.busy=true;$('bubble').style.display='none';
- snd(300,.4,'triangle',.05,-150);S.nightT=.6;caption(`NIGHT ${S.day}`);await sleep(1300);
+ snd(300,.4,'triangle',.05,-150);S.nightT=.6;caption(`NIGHT ${S.day}`);await sleep(900);
  const b={power:S.power,air:S.air,shield:S.shield,hp:S.hp},notes=[];
  const st=stormTonight();
  if(st){
   const c=await card(`<h2>SOLAR STORM ARRIVING!</h2><p>A ${st.d.what} is hitting the Moon. This storm is based on a real event from ${st.d.date}.</p><p>Kai is asleep. BOLT must decide.</p>`,
-   [{label:`Move Kai into the storm shelter<br><span class="cost">Blocks most radiation, but moving hurts Kai's leg: -6 health</span>`},
+   [{label:`Move Kai into the storm shelter<br><span class="cost">Blocks most radiation, but moving hurts Kai's leg: -3 health</span>`},
     {label:`Let Kai stay in bed<br><span class="cost">Kai rests, but only the shield (${S.shield}/100) protects</span>`}]);
   S.nightT=.25;S.stormFx=4.2;S.shake=1.6;S.flash=1;alarm();await sleep(4400);S.nightT=.6;
-  let dmg=st.d.power*(1-S.shield/100)+(has('gap')?10:0);if(c===0){S.hp-=6;dmg*=.4}dmg=Math.round(dmg);
-  S.hp-=dmg;S.shield-=8;notes.push(`The storm hit! Kai took ${dmg} radiation damage.${c===0?' The shelter helped a lot.':''}`);S.survived.push(st.d);
-  if(Math.random()<.6)addProblem('gap');if(Math.random()<.4)addProblem('crack');
- } else if(S.day>=2&&Math.random()<.55){
+  let dmg=st.d.power*.7*(1-S.shield/100)+(has('gap')?6:0);if(c===0){S.hp-=3;dmg*=.35}dmg=Math.round(dmg);
+  S.hp-=dmg;S.shield-=6;notes.push(`The storm hit! Kai took ${dmg} radiation damage.${c===0?' The shelter helped a lot.':''}`);S.survived.push(st.d);
+  if(Math.random()<.35)addProblem('gap');else if(Math.random()<.25)addProblem('crack');
+ } else if(S.day>=2&&Math.random()<.45){
   const pool=DILEMMAS.filter(d=>!d.ok||d.ok());const d=pool[Math.random()*pool.length|0];snd(500,.15,'triangle',.05);
   const c=await card(`<h2>${d.title.toUpperCase()}</h2><p>${d.text}</p>`,[{label:`${d.a.t}<br><span class="cost">${d.a.c}</span>`},{label:`${d.b.t}<br><span class="cost">${d.b.c}</span>`}]);
   (c===0?d.a:d.b).f();clampAll();
  }
  S.power+=estPower();
- const make=(has('filter')||S.power<=0)?0:18;S.air+=make-14-(has('leak')?12:0);
- if(has('gap'))S.shield-=10;
+ const make=(has('filter')||S.power<=0)?0:20;S.air+=make-14-(has('leak')?8:0);
+ if(has('gap'))S.shield-=6;
  clampAll();
- if(S.air<25){S.hp-=15;notes.push('Air is very low. Kai is struggling to breathe.')}else if(S.air<50)S.hp-=4;
- if(S.power<=0){S.hp-=12;notes.push('No power! The base got freezing cold.')}
- if(S.air>=50&&S.power>0&&!st){S.hp+=5;notes.push('Kai rested and healed a little.')}
- if(S.recur){S.recur=false;if(Math.random()<.5){addProblem('crack');notes.push('The tape patch failed. The panel cracked again.')}}
- const n=S.day===1?1:(Math.random()<.5?1:2);
+ if(S.air<20){S.hp-=10;notes.push('Air is very low. Kai is struggling to breathe.')}else if(S.air<40)S.hp-=3;
+ if(S.power<=0){S.hp-=8;notes.push('No power! The base got freezing cold.')}
+ if(S.air>=40&&S.power>0&&!st){S.hp+=4;notes.push('Kai rested and healed a little.')}
+ if(S.recur){S.recur=false;if(Math.random()<.4){addProblem('crack');notes.push('The tape patch failed. The panel cracked again.')}}
+ const n=(S.day>=3&&Math.random()<.25)?2:1;
  for(let i=0;i<n;i++){const opts=Object.keys(PDEF).filter(t=>!has(t));if(!opts.length)break;const t=opts[Math.random()*opts.length|0];addProblem(t);notes.push('New problem: '+PDEF[t].name+'.')}
  S.solarBonus=0;clampAll();updHUD();
  await card(`<h2>NIGHT ${S.day} REPORT</h2>${row('Power',b.power,S.power)}${row('Air',b.air,S.air)}${row('Shield',b.shield,S.shield)}${row(`Kai's health`,b.hp,S.hp)}${notes.map(x=>`<p>${x}</p>`).join('')}`,
-  [{label:S.hp<=0?'CONTINUE':(S.day>=7?'MORNING OF DAY 8...':`START DAY ${S.day+1}`)}]);
+  [{label:S.hp<=0?'CONTINUE':(S.day>=DAYS?`MORNING OF DAY ${DAYS+1}...`:`START DAY ${S.day+1}`)}]);
  S.busy=false;
  if(S.hp<=0)return endGame(false);
- if(S.day>=7)return endGame(true);
+ if(S.day>=DAYS)return endGame(true);
  S.day++;S.bolt=S.boltMax-S.boltPenalty;S.boltPenalty=0;S.wakeUsed=false;S.nightT=0;updHUD();caption(`DAY ${S.day}`);snd(520,.1,'triangle',.05);setTimeout(()=>snd(780,.15,'triangle',.05),140);
  const s=stormSoon();if(s)setTimeout(()=>alarm(4),600);
  if(Math.random()<.35)setTimeout(()=>kaiSay(hint()),1500);
@@ -441,13 +453,48 @@ async function endDay(){
 const LEARN=`<div class="fact"><b>What real astronauts face:</b> no air outside, strong radiation from the Sun, and every repair costs time, power, or air. Space missions are all about smart trade-offs, just like the ones you made.</div>`;
 function endGame(win){
  S.mode='end';S.win=win;S.nightT=win?0:.5;updHUD();
- if(win){snd(523,.15);setTimeout(()=>snd(659,.15),160);setTimeout(()=>snd(784,.15),320);setTimeout(()=>snd(1046,.3),480)}else snd(200,.6,'sawtooth',.05,-120);
+ if(win){S.problems=[];S.endT=0;S.endShown=false;bot.state='idle';bot.out=false;bot.cb=null;bot.x=80;caption('THE RESCUE SHIP IS HERE!');snd(523,.15);setTimeout(()=>snd(659,.15),160);setTimeout(()=>snd(784,.15),320);setTimeout(()=>snd(1046,.3),480);return}
+ snd(200,.6,'sawtooth',.05,-120);showEndCard(false);
+}
+function showEndCard(win){
  const grade=S.hp>=70?'HERO ROBOT':S.hp>=35?'STEADY HELPER':'CLOSE CALL';
  const storms=S.survived.map(d=>`<li>${d.what}, ${d.date}. ${d.note}</li>`).join('')||'<li>None reached the base this time.</li>';
- const h=win?`<h2>THE RESCUE SHIP HAS LANDED!</h2><p>Kai made it through all 7 days. Kai's health: ${S.hp}/100.</p><p class="title" style="font-size:14px">RANK: ${grade}</p><p><b>Real solar storms you survived:</b></p><ul>${storms}</ul><p class="src">Storm data: NASA DONKI space weather database (historical records saved in the game, not live).</p>`
+ const h=win?`<h2>THE RESCUE SHIP HAS LANDED!</h2><p>Kai made it through all 5 days. Kai's health: ${S.hp}/100.</p><p class="title" style="font-size:14px">RANK: ${grade}</p><p><b>Real solar storms you survived:</b></p><ul>${storms}</ul><p class="src">Storm data: NASA DONKI space weather database (historical records saved in the game, not live).</p>`
   :`<h2>MISSION FAILED</h2><p>Kai's health reached zero on day ${S.day}. The rescue team had to rush in early.</p><p>Try again! Tip: fix problems before they pile up, and make the shield strong before a storm.</p>`;
- setTimeout(()=>card(h+LEARN,[{label:'PLAY AGAIN'},{label:'ABOUT THE DATA'}]).then(c=>{if(c===1)aboutData().then(()=>location.reload());else location.reload()}),win?2500:800);
+ setTimeout(()=>card(h+LEARN,[{label:'PLAY AGAIN'},{label:'ABOUT THE DATA'}]).then(c=>{if(c===1)aboutData().then(()=>location.reload());else location.reload()}),win?300:800);
 }
+/* ---------- win cutscene ---------- */
+function endAnim(dt){
+ const t=(S.endT+=dt),L=(a,b,p)=>a+(b-a)*Math.max(0,Math.min(1,p));
+ const once=(k,f)=>{if(!S.said[k]){S.said[k]=1;f()}};
+ if(t<3){S.shipY=L(-30,43,1-Math.pow(1-t/3,2));S.flame=true}
+ else if(t<15.5){S.shipY=43;S.flame=false;once('land',()=>{S.shake=.4;snd(110,.3,'triangle',.06);for(let i=0;i<14;i++)puff(150+Math.random()*16,55,'#b4b4be',(Math.random()-.5)*40,-Math.random()*12,1)})}
+ else{S.shipY=43-Math.pow(t-15.5,2)*14;S.flame=true;once('lift',()=>{caption('MISSION COMPLETE!');snd(180,1.2,'sawtooth',.05,400)});
+  if(Math.random()<.5){const c=['#ffcc33','#5dcaff','#ff6b8a','#5dcaa5','#a98bff'][Math.random()*5|0];P.push({x:40+Math.random()*240,y:10+Math.random()*30,vx:(Math.random()-.5)*40,vy:-10,life:1.5,c,g:30,sz:2})}}
+ const ppl=[];
+ if(t>=3&&t<5.5){const p=(t-3)/2.5;ppl.push({k:'suit',x:L(160,236,p),y:55,s:1},{k:'suit',x:L(150,226,p),y:55,s:1});once('out',()=>snd(300,.2,'triangle',.05,200))}
+ if(t>=5.5&&t<8.5){const p=(t-5.5)/3;ppl.push({k:'suit',x:L(222,50,p),y:150,s:1},{k:'suit',x:L(232,62,p),y:150,s:1})}
+ if(t>=8.5&&t<10.5){S.kaiInBed=false;ppl.push({k:'suit',x:50,y:150,s:0},{k:'suit',x:62,y:150,s:0},{k:'kai',x:30,y:150,s:0});
+  once('safe',()=>{caption('KAI IS SAFE!');[659,784,1046].forEach((f,i)=>setTimeout(()=>snd(f,.15,'square',.04),i*150))});
+  if(Math.random()<.35)puff(26+Math.random()*14,130,'#ff6b8a',(Math.random()-.5)*8,-18,2)}
+ if(t>=10.5&&t<13){const p=(t-10.5)/2.5;ppl.push({k:'kai',x:L(30,220,p),y:150,s:1},{k:'suit',x:L(50,232,p),y:150,s:1},{k:'suit',x:L(14,206,p),y:150,s:1});bot.x=L(80,196,p);S.botWalk=p<1}
+ if(t>=13&&t<15.5){const p=(t-13)/2.5;S.botWalk=false;ppl.push({k:'kaisuit',x:L(236,160,p),y:55,s:1},{k:'suit',x:L(248,170,p),y:55,s:1},{k:'suit',x:L(226,150,p),y:55,s:1})}
+ S.ppl=ppl;
+ S.botHop=(t>=8.5&&t<10.5)||t>=13?Math.round(Math.abs(Math.sin(t*8))*4):0;
+ if(t>=19&&!S.endShown){S.endShown=true;showEndCard(true)}
+}
+function drawSuit(x,y,step,kai){
+ const st=step?(T*10|0)%2:0;
+ R('#fff',x,y-13,6,5);R(kai?'#e0a020':'#e0a020',x+1,y-12,4,2);if(kai)R('#e24b4a',x,y-14,2,1);
+ R('#e8e8f0',x,y-8,6,5);R(kai?'#bbb':'#ff7a1a',x,y-7,6,1);R('#bbb',x-2,y-8,2,4);
+ R('#ddd',x+st,y-3,2,3);R('#ddd',x+4-st,y-3,2,3);
+}
+function drawKai(x,y,step){
+ const st=step?(T*8|0)%2:0;
+ R('#3a2a1a',x,y-18,6,2);R('#f2c79a',x,y-16,6,6);R('#fff',x,y-16,6,1);R('#111',x+1,y-14,1,1);R('#111',x+4,y-14,1,1);R('#b5653a',x+2,y-12,2,1);
+ R('#3f8f5a',x,y-10,6,6);R('#2b2f4a',x+st,y-4,2,4);R('#fff',x+4-st,y-4,2,4);R('#aaa',x+7,y-11+st,1,11);
+}
+function drawPeople(){for(const p of S.ppl){if(p.k==='kai')drawKai(Math.round(p.x),p.y,p.s);else drawSuit(Math.round(p.x),p.y,p.s,p.k==='kaisuit')}}
 function aboutData(){return card(`<h2>ABOUT THE DATA</h2>
 <p><b>Solar storms:</b> NASA DONKI (Space Weather Database Of Notifications, Knowledge, Information), kauai.ccmc.gsfc.nasa.gov/DONKI. We picked 6 real flares and CMEs from 2011 to 2024. They are historical records saved in the game, not live data. Each game picks 2 of them.</p>
 <p><b>Intro storm:</b> the real solar storm of August 4, 1972, between Apollo 16 and Apollo 17 (NASA history).</p>
@@ -465,28 +512,107 @@ function showIntro(i){
   `A Moon base near the Moon's south pole, where NASA's Artemis missions plan to explore. Commander Kai is outside, fixing the radio antenna. You are BOLT, the base helper robot. Right now you are in sleep mode.`,
   `Suddenly the Sun erupts! A huge solar storm blasts radiation toward the Moon. A storm like this really happened on August 4, 1972, between the Apollo 16 and Apollo 17 Moon missions. Luckily, no one was on the Moon that day.`,
   `Kai races back to the base, trips on a rock, and hurts a leg. Kai also got hit by radiation. The storm cracked a solar panel and the radiation shield, too.`,
-  `BOLT wakes up. A message blinks on the screen: RESCUE SHIP ARRIVES IN 7 DAYS. KEEP COMMANDER KAI ALIVE.`];
+  `BOLT wakes up. A message blinks on the screen: RESCUE SHIP ARRIVES IN 5 DAYS. KEEP COMMANDER KAI ALIVE.`];
  card(`<p class="h" style="font-size:10px;color:var(--dim)">PART ${i+1} OF 4</p><p>${TXT[i]}</p>`,[{label:i<3?'NEXT':'START MISSION'}],true).then(()=>{if(i<3)showIntro(i+1);else howTo()});
 }
 function howTo(){
  card(`<h2>HOW TO PLAY</h2><ul>
 <li>Tap a room to see what is wrong and how to fix it.</li>
-<li>BOLT has <b>4 battery bars</b> each day. Every fix uses some.</li>
+<li>BOLT can do <b>3 jobs</b> each day. Fixing things is hands-on: drag, rub, and crank!</li>
 <li>Every choice costs something. Pick what matters most!</li>
 <li>Check the <b>MONITOR</b> for solar storm warnings.</li>
 <li>Tap <b>END DAY</b> when you are done. Things happen at night.</li>
-<li>Keep Kai's health above zero for <b>7 days</b> to win.</li></ul>`,[{label:"LET'S GO"}]).then(()=>{S.mode='play';setupStorms();updHUD();caption('DAY 1');setTimeout(()=>kaiSay(`BOLT... the shield is cracked... and a solar panel too. Please... keep us going.`),1600)});
+<li>Keep Kai's health above zero for <b>5 days</b> to win.</li></ul>`,[{label:"LET'S GO"}]).then(()=>{S.mode='play';setupStorms();updHUD();caption('DAY 1');setTimeout(()=>kaiSay(`BOLT... the shield is cracked... and a solar panel too. Please... keep us going.`),1600)});
 }
-function setupStorms(){const pool=[...STORMS].sort(()=>Math.random()-.5);S.storms=[{night:3+(Math.random()<.5?0:1),d:pool[0]},{night:6+(Math.random()<.5?0:1),d:pool[1]}]}
+function setupStorms(){const pool=[...STORMS].sort(()=>Math.random()-.5);S.storms=[{night:2+(Math.random()<.5?0:1),d:pool[0]},{night:4+(Math.random()<.5?0:1),d:pool[1]}]}
 function title(){
  updHUD();
- card(`<p class="title">BOLT:<br>7 DAYS ON THE MOON</p><p>Commander Kai is hurt. You are BOLT, the base robot. Keep the Moon base running and keep Kai alive until the rescue ship arrives.</p><p class="src">A Junior Astronaut Mission Trainer by team Junior Moonbase Crew. Uses real NASA space weather data. Code written with AI help.</p>`,
+ card(`<p class="title">BOLT:<br>5 DAYS ON THE MOON</p><p>Commander Kai is hurt. You are BOLT, the base robot. Keep the Moon base running and keep Kai alive until the rescue ship arrives.</p><p class="src">A Junior Astronaut Mission Trainer by team Junior Moonbase Crew. Uses real NASA space weather data. Code written with AI help.</p>`,
   [{label:'START'},{label:'ABOUT THE DATA'}]).then(c=>{snd(660,.1);if(c===1)aboutData().then(title);else showIntro(0)});
 }
 
+/* ---------- hands-on repair mini games ---------- */
+const mgc=$('mgc'),mx=mgc.getContext('2d');
+function MR(c,x,y,w,h){mx.fillStyle=c;mx.fillRect(Math.round(x),Math.round(y),w,h)}
+let MG=null;
+function miniGame(type){return new Promise(res=>{MG=makeMG(type);MG.res=res;MG.prog=MG.prog||0;MG.done=false;$('mgTxt').textContent=MG.text;$('mg').style.display='flex';snd(400,.08,'square',.04)})}
+$('mgQuit').onclick=()=>{if(!MG||MG.done)return;const r=MG.res;MG=null;$('mg').style.display='none';r(false)};
+function mgPos(e){const r=mgc.getBoundingClientRect();return[(e.clientX-r.left)/r.width*200,(e.clientY-r.top)/r.height*120]}
+mgc.addEventListener('pointerdown',e=>{if(!MG||MG.done)return;try{mgc.setPointerCapture(e.pointerId)}catch(_){}MG.held=true;const[x,y]=mgPos(e);MG.px=x;MG.py=y;MG.down&&MG.down(x,y);e.preventDefault()});
+mgc.addEventListener('pointermove',e=>{if(!MG)return;const[x,y]=mgPos(e);MG.px=x;MG.py=y;if(MG.held&&!MG.done&&MG.move)MG.move(x,y)});
+mgc.addEventListener('pointerup',()=>{if(!MG)return;MG.held=false;if(!MG.done&&MG.up)MG.up(MG.px,MG.py)});
+function mgWin(){if(!MG||MG.done)return;MG.done=true;MG.prog=1;snd(880,.08,'square',.04);setTimeout(()=>snd(1320,.15,'square',.04),100);$('mgTxt').textContent='FIXED! Great job, BOLT.';
+ setTimeout(()=>{if(!MG)return;const r=MG.res;MG=null;$('mg').style.display='none';r(true)},1000)}
+const near=(ax,ay,bx,by,d)=>Math.hypot(ax-bx,ay-by)<d;
+function hand(x,y){if(x==null)return;MR('#c9d1e0',x-1,y,5,6);MR('#8e98ad',x-1,y+5,5,2);MR('#c9d1e0',x-3,y+1,2,3)}
+function mgSpark(x,y){for(let i=0;i<3;i++)MR(Math.random()<.5?'#ffdd55':'#fff',x+(Math.random()-.5)*10,y+(Math.random()-.5)*10,1,1)}
+function makeMG(type){
+ if(type==='dust')return{text:'Moon dust! Hold the mouse down and rub the panel clean.',cells:new Array(800).fill(1),
+  move(x,y){let left=0;for(let j=0;j<20;j++)for(let i=0;i<40;i++){const k=j*40+i;if(this.cells[k]&&near(20+i*4+2,16+j*4+2,x,y,9)){this.cells[k]=0;if(Math.random()<.05)snd(180+Math.random()*120,.03,'triangle',.02)}left+=this.cells[k]}this.prog=1-left/800;if(this.prog>.85)mgWin()},
+  draw(){MR('#c9d1e0',18,14,164,84);MR('#1a3a8a',20,16,160,80);for(let i=0;i<160;i+=20)MR('#4a7ad0',20+i,16,1,80);MR('#4a7ad0',20,56,160,1);
+   for(let j=0;j<20;j++)for(let i=0;i<40;i++)if(this.cells[j*40+i])MR((i*7+j*3)%5?'#a8a296':'#8e8a80',20+i*4,16+j*4,4,4);
+   if(this.px!=null){MR('#8b5a2b',this.px-1,this.py-12,3,8);MR('#ffcc33',this.px-6,this.py-4,12,4);MR('#c9a020',this.px-6,this.py,12,1);if(this.held)for(let i=0;i<3;i++)MR('#b4b4be',this.px+(Math.random()-.5)*20,this.py+4+Math.random()*6,1,1)}}};
+ if(type==='loose')return{text:'A cable shook loose and is sparking! Drag the yellow plug into the socket.',plug:{x:62,y:98},grab:false,
+  down(x,y){if(near(x,y,this.plug.x,this.plug.y,14))this.grab=true},
+  move(x,y){if(this.grab){this.plug.x=Math.max(4,Math.min(196,x));this.plug.y=Math.max(4,Math.min(110,y));this.prog=Math.max(0,1-Math.hypot(x-160,y-62)/130)}},
+  up(){this.grab=false;if(near(this.plug.x,this.plug.y,160,62,12)){this.plug={x:160,y:62};snd(200,.1,'square',.06);mgWin()}},
+  draw(){MR('#c9d1e0',8,8,84,40);MR('#1a3a8a',10,10,80,36);for(let i=0;i<80;i+=16)MR('#4a7ad0',10+i,10,1,36);MR('#4a7ad0',10,28,80,1);MR('#888',48,48,4,60);
+   MR('#5a6090',140,36,44,52);MR('#2b2f4a',150,52,20,20);MR('#000',157,59,7,7);MR(this.done?'#5dcaa5':((T*4|0)%2?'#e24b4a':'#5a1010'),176,40,4,4);
+   const ax=52,ay=50,p=this.plug;for(let i=0;i<=40;i++){const t=i/40;MR('#8e98ad',ax+(p.x-ax)*t-1,ay+(p.y-ay)*t+Math.sin(t*Math.PI)*14*(1-this.prog)-1,3,3)}
+   MR('#ffcc33',p.x-5,p.y-3,8,7);MR('#ddd',p.x+3,p.y-2,3,1);MR('#ddd',p.x+3,p.y+2,3,1);
+   if(!this.done&&Math.random()<.6)mgSpark(p.x+5,p.y);if(!this.done&&!this.grab)hand(p.x-2,p.y+6+((T*3|0)%2)*2)}};
+ if(type==='filter')return{text:'The air filter is clogged with dust. Drag the dirty filter OUT of the machine.',step:0,f:{x:75,y:32},grab:false,
+  down(x,y){if(x>this.f.x-4&&x<this.f.x+34&&y>this.f.y-4&&y<this.f.y+44){this.grab=true;this.ox=x-this.f.x;this.oy=y-this.f.y}},
+  move(x,y){if(!this.grab)return;this.f.x=x-this.ox;this.f.y=y-this.oy;this.prog=this.step===0?Math.min(.5,Math.max(0,Math.hypot(this.f.x-75,this.f.y-32)/140)):.5+.5*Math.max(0,1-Math.hypot(this.f.x-75,this.f.y-32)/110)},
+  up(){this.grab=false;
+   if(this.step===0&&!near(this.f.x,this.f.y,75,32,40)){this.step=1;this.prog=.5;this.f={x:160,y:66};$('mgTxt').textContent='Good! Now drag the CLEAN filter into the machine.';snd(500,.1,'square',.04)}
+   else if(this.step===1&&near(this.f.x,this.f.y,75,32,14)){this.f={x:75,y:32};mgWin()}},
+  draw(){MR('#5a6090',55,12,70,90);MR('#2b2f4a',60,16,60,6);MR('#111',73,30,34,44);
+   if(this.step===0&&Math.random()<.5)MR('#333',80+Math.random()*20,8-Math.random()*6,3,3);
+   if(this.step===0){MR('#3a3a3a',170,86,22,22);MR('#555',168,84,26,3)}
+   const c=this.step===0?'#5a4632':'#e8f4ff',l=this.step===0?'#3a2a1a':'#9fd8ff';MR(c,this.f.x,this.f.y,30,40);for(let i=0;i<30;i+=5)MR(l,this.f.x+i,this.f.y,1,40);for(let j=0;j<40;j+=8)MR(l,this.f.x,this.f.y+j,30,1);
+   if(this.step===1&&!this.done)for(let i=0;i<4;i++)MR('#ffcc33',73+i*10,24+((T*4|0)%2),4,2);
+   if(!this.grab&&!this.done)hand(this.f.x+14,this.f.y+20)}};
+ if(type==='leak')return{text:'Air is leaking out! Drag the patch over the hole.',t:{x:22,y:92},grab:false,stuck:false,taps:0,
+  down(x,y){if(this.stuck){if(near(x,y,100,50,16)){this.taps++;snd(140,.07,'square',.06);this.squash=.15;this.prog=.5+this.taps/6;if(this.taps>=3)mgWin()}return}
+   if(x>this.t.x-4&&x<this.t.x+22&&y>this.t.y-4&&y<this.t.y+14){this.grab=true}},
+  move(x,y){if(this.grab){this.t.x=x-9;this.t.y=y-5;this.prog=.5*Math.max(0,1-Math.hypot(x-100,y-50)/110)}},
+  up(){if(this.grab){this.grab=false;if(near(this.t.x+9,this.t.y+5,100,50,13)){this.stuck=true;this.t={x:91,y:45};this.prog=.5;$('mgTxt').textContent='Now tap the patch 3 times to press it down hard!';snd(300,.08,'square',.04)}}},
+  draw(){MR('#7d86b8',0,40,200,18);MR('#5a6090',0,56,200,2);MR('#9aa3d4',0,40,200,2);MR('#5a6090',40,36,8,26);MR('#5a6090',150,36,8,26);MR('#000',98,47,5,5);
+   const spray=this.done?0:this.stuck?3-this.taps:8;for(let i=0;i<spray;i++){const k=(T*2.5+i/8)%1;MR('#dfe8ff',100+(i-spray/2)*k*6,46-k*36,2,2)}
+   this.squash=Math.max(0,(this.squash||0)-.016);const sq=this.squash>0?2:0;
+   MR('#c8b27a',this.t.x,this.t.y+sq,18,10-sq);MR('#a8925a',this.t.x,this.t.y+8,18,2);
+   if(this.stuck&&!this.done){hand(100,30+((T*6|0)%2)*3)}else if(!this.grab&&!this.done)hand(this.t.x+9,this.t.y+12)}};
+ if(type==='gap')return{text:'The shield has cracks! Drag each Moon-soil bag into a glowing crack.',slots:[{x:46,y:30},{x:91,y:30},{x:136,y:30}],bags:[{x:36,y:90},{x:91,y:90},{x:146,y:90}],g:-1,
+  down(x,y){this.bags.forEach((b,i)=>{if(!b.in&&x>b.x-3&&x<b.x+21&&y>b.y-3&&y<b.y+15)this.g=i})},
+  move(x,y){if(this.g>=0){const b=this.bags[this.g];b.x=x-9;b.y=y-6}},
+  up(){if(this.g<0)return;const b=this.bags[this.g];const s=this.slots.find(s=>!s.f&&near(b.x,b.y,s.x,s.y,16));
+   if(s){s.f=1;b.in=1;b.x=s.x;b.y=s.y;snd(110,.14,'triangle',.07);this.prog=this.slots.filter(q=>q.f).length/3;if(this.prog>=1)mgWin()}this.g=-1},
+  draw(){for(let r=0;r<4;r++)for(let x=8-(r%2)*9;x<192;x+=18){MR('#5e5444',x,6+r*12,18,12);MR(r%2?'#9c8f78':'#8a7e69',x+1,7+r*12,16,10)}
+   for(const s of this.slots)if(!s.f){MR('#05060f',s.x,s.y,18,12);MR((T*6|0)%2?'#ff4a3a':'#a32d2d',s.x+2,s.y+2,14,8);if(Math.random()<.3)MR('#ffdd55',s.x+Math.random()*18,s.y+12+Math.random()*8,1,1)}
+   MR('#2b2f4a',0,82,200,30);
+   for(const b of this.bags){MR('#5e5444',b.x,b.y,18,12);MR('#b0a080',b.x+1,b.y+1,16,10);MR('#5e5444',b.x+7,b.y,4,2)}
+   const nb=this.bags.find(b=>!b.in);if(nb&&this.g<0&&!this.done)hand(nb.x+9,nb.y+8)}};
+ if(type==='cold')return{text:'The battery is frozen! Hold the red knob and spin the heater crank in circles.',ang:-Math.PI/2,acc:0,last:null,
+  down(x,y){this.last=Math.atan2(y-60,x-150)},
+  move(x,y){const a=Math.atan2(y-60,x-150);if(this.last!=null){let d=a-this.last;if(d>Math.PI)d-=2*Math.PI;if(d<-Math.PI)d+=2*Math.PI;this.acc+=Math.abs(d);this.prog=Math.min(1,this.acc/(Math.PI*2*3));if(Math.random()<.15)snd(250+this.prog*500,.03,'square',.02);if(this.prog>=1)mgWin()}this.last=a;this.ang=a},
+  up(){this.last=null},
+  draw(){MR('#9aa3d4',30,18,50,88);MR('#0a0c18',33,21,44,82);MR('#9aa3d4',45,12,20,6);
+   for(let i=0;i<8;i++)MR(this.prog>.9?'#5DCAA5':'#3a4a5a',36,94-i*10,38,7);
+   for(let i=0;i<60;i++){if(((i*37)%100)/100<this.prog)continue;MR(i%3?'#bfeaff':'#e8f8ff',28+((i*13)%54),14+((i*29)%92),6,5)}
+   if(this.prog<1&&this.prog>0&&Math.random()<.3)MR('#5dcaff',30+Math.random()*50,106,1,3);
+   MR('#e24b4a',82,58,40,3);MR(this.prog>.3?'#ff7a3a':'#5a1010',84,54,4,10);MR(this.prog>.6?'#ff7a3a':'#5a1010',92,54,4,10);
+   for(let i=0;i<16;i++){const a=i/16*6.283;MR('#3a4180',150+Math.cos(a)*22,60+Math.sin(a)*22,1,1)}
+   MR('#5a6090',145,55,10,10);const hx=150+Math.cos(this.ang)*20,hy=60+Math.sin(this.ang)*20;
+   for(let i=0;i<=10;i++)MR('#9aa3d4',150+(hx-150)*i/10-1,60+(hy-60)*i/10-1,3,3);MR('#e24b4a',hx-4,hy-4,8,8);MR('#ff8a8a',hx-3,hy-3,3,2);
+   if(this.prog===0)for(let i=0;i<4;i++){const a=T*3+i*1.57;MR('#ffcc33',150+Math.cos(a)*28,60+Math.sin(a)*28,2,2)}}};
+}
+function drawMG(){if(!MG)return;MR('#0b0d1e',0,0,200,120);MG.draw();MR('#222',10,113,180,4);MR('#5dcaa5',10,113,Math.round(180*MG.prog),4);
+ if(MG.done)for(let i=0;i<14;i++)MR(['#ffdd55','#5dcaa5','#ff6b8a'][i%3],(i*37+T*90)%200,(i*23+T*40)%108,2,2)}
+
 /* ---------- loop ---------- */
 let last=performance.now();
-function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw();requestAnimationFrame(loop)}
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;update(dt);draw();drawMG();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 title();
 </script>
